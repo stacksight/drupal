@@ -1,6 +1,6 @@
 <?php
 
-require('stacksight-php-sdk/cms/drupal.php');
+require('stacksight-php-sdk/platforms/drupal.php');
 
 function stacksight_admin() {
 	$form = array();
