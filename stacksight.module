@@ -1,2 +1,129 @@
 <?php
 
+require('stacksight-php-sdk/cms/drupal.php');
+
+function stacksight_admin() {
+	$form = array();
+
+	$form['stacksight_app'] = array(
+		'#type' => 'textfield',
+		'#title' => t('App'),
+		'#default_value' => variable_get('stacksight_app', ''),
+		'#size' => 64,
+		'#maxlength' => 64,
+		'#description' => t("An app name within mean network"),
+		'#required' => TRUE,
+	);
+
+	$form['stacksight_token'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Access Token'),
+		'#default_value' => variable_get('stacksight_token', ''),
+		'#size' => 64,
+		'#maxlength' => 64,
+		'#description' => t("An access token given by mean network"),
+		'#required' => TRUE,
+	);
+	$form['#submit'][] = 'stacksight_admin_submit';
+
+	return system_settings_form($form);
+}
+
+function stacksight_menu() {
+	$items = array();
+
+	$items['admin/settings/stacksight'] = array(
+		'title' => 'StackSight',
+		'description' => 'StackSight integration module settings',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('stacksight_admin'),
+		'access arguments' => array('administer stacksight settings'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+}
+
+function stacksight_admin_submit($form, &$form_state) {
+	$app_name = $form_state['values']['stacksight_app'];
+	$token = $form_state['values']['stacksight_token'];
+	$stacksight_data = variable_get('stacksight', NULL);
+	$stacksight_app = variable_get('stacksight_app', '');
+	$stacksight_token = variable_get('stacksight_token', '');
+
+	if (!$stacksight_data || $stacksight_app != $app_name || $stacksight_token != $token) {
+		$dp_stack_sight = new DPStackSight();
+	    $result = $dp_stack_sight->initApp($app_name, $token);
+
+	    if (!$result['success']) {
+	    	drupal_set_message($result['message'], 'error');
+	    	variable_set('stacksight', '');
+	    } else {
+	    	drupal_set_message('App "'.$result['data']['name'].'" created successfully');
+	        variable_set('stacksight', $result['data']);
+	    }
+	}
+}
+
+function stacksight_watchdog($log) {
+	$dp_stack_sight = new DPStackSight();
+	$dp_stack_sight->error_log(print_r($log, true));
+
+	$stacksight_data = variable_get('stacksight', NULL);
+	$stacksight_app = variable_get('stacksight_app', '');
+	$stacksight_token = variable_get('stacksight_token', '');
+
+	if (!$stacksight_data) return;
+
+	$data = array();
+	$mct = explode(" ", microtime());
+
+	$data['index'] = 'events';
+	$data['type'] = 'events';
+	$data['key'] = $log['type'];
+	$data['name'] = t(str_replace("%", "@", $log['message']), json_decode(str_replace('%', '@',  json_encode($log['variables'])), true) );
+	$data['token'] = $stacksight_token;
+	$data['created'] = date("Y-m-d\TH:i:s",$mct[1]).substr((string)$mct[0],1,4).'Z';
+	$data['appId'] = $stacksight_data['_id'];
+
+	$data['data']['description'] = $data['name'];
+
+	switch ($log['type']) {
+	    case 'content':
+	        $data['design']['icon'] = 'fa-file-text';
+	        $data['design']['color'] = '#8FD5FF';
+	        break;
+	    case 'user':
+	       $data['design']['icon'] = 'fa-user';
+	       $data['design']['color'] = '#8664aa';
+	        break;
+	    case 'php':
+	    	$data['design']['icon'] = 'fa-code';
+	      	$data['design']['color'] = '#990000';
+	        break;
+	    case 'system':
+	       $data['design']['icon'] = 'fa-cubes';
+	       $data['design']['color'] = '#c79696';
+	        break;
+	    case 'actions':
+	       $data['design']['icon'] = 'fa-certificate';
+	       $data['design']['color'] = '#fd8e00';
+	        break;
+	    case 'cron':
+	       $data['design']['icon'] = 'fa-cogs';
+	       $data['design']['color'] = '#de1b16';
+	        break;
+	    default:
+	        $data['design']['color'] = '#19617a';
+	        $data['design']['icon'] = 'fa-bars';
+	        break;
+	}
+
+	$res = $dp_stack_sight->publishEvent($data);
+}
+
+function stacksight_uninstall() {
+	variable_del('stacksight');
+	variable_del('stacksight_app');
+	variable_del('stacksight_token');
+}
