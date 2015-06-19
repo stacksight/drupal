@@ -1,6 +1,6 @@
 <?php
 
-require('stacksight-php-sdk/platforms/drupal.php');
+require('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
 	$form = array();
@@ -47,45 +47,29 @@ function stacksight_menu() {
 function stacksight_admin_submit($form, &$form_state) {
 	$app_name = $form_state['values']['stacksight_app'];
 	$token = $form_state['values']['stacksight_token'];
-	$stacksight_data = variable_get('stacksight', NULL);
-	$stacksight_app = variable_get('stacksight_app', '');
-	$stacksight_token = variable_get('stacksight_token', '');
 
-	if (!$stacksight_data || $stacksight_app != $app_name || $stacksight_token != $token) {
-		$dp_stack_sight = new DPStackSight();
-	    $result = $dp_stack_sight->initApp($app_name, $token);
+	$ss_client = new SSDrupalClient($token, 'drupal');
+	$result = $ss_client->initApp($app_name);
 
-	    if (!$result['success']) {
-	    	drupal_set_message($result['message'], 'error');
-	    	variable_set('stacksight', '');
-	    } else {
-	    	drupal_set_message('App "'.$result['data']['name'].'" created successfully');
-	        variable_set('stacksight', $result['data']);
-	    }
-	}
+	if ($result['success']) {
+		if ($result['message'] != 'LOADED') drupal_set_message('The app "'.$result['data']['name'].'" created successfully');
+	} else drupal_set_message($result['message'], 'error');
 }
 
 function stacksight_watchdog($log) {
-	$dp_stack_sight = new DPStackSight();
-	$dp_stack_sight->error_log(print_r($log, true));
+	$app_name = variable_get('stacksight_app');
+	$token = variable_get('stacksight_token');
 
-	$stacksight_data = variable_get('stacksight', NULL);
-	$stacksight_app = variable_get('stacksight_app', '');
-	$stacksight_token = variable_get('stacksight_token', '');
-
-	if (!$stacksight_data) return;
+	$ss_client = new SSDrupalClient($token, 'drupal');
+	$app = $ss_client->initApp($app_name);
+	if (!$app['success']) {
+		SSUtilities::error_log($result['message'], 'error');
+		return;
+	}
 
 	$data = array();
-	$mct = explode(" ", microtime());
-
-	$data['index'] = 'events';
-	$data['type'] = 'events';
 	$data['key'] = $log['type'];
 	$data['name'] = t(str_replace("%", "@", $log['message']), json_decode(str_replace('%', '@',  json_encode($log['variables'])), true) );
-	$data['token'] = $stacksight_token;
-	$data['created'] = date("Y-m-d\TH:i:s",$mct[1]).substr((string)$mct[0],1,4).'Z';
-	$data['appId'] = $stacksight_data['_id'];
-
 	$data['data']['description'] = $data['name'];
 
 	switch ($log['type']) {
@@ -119,7 +103,7 @@ function stacksight_watchdog($log) {
 	        break;
 	}
 
-	$res = $dp_stack_sight->publishEvent($data);
+	$res = $ss_client->publishEvent($data);
 }
 
 function stacksight_uninstall() {
