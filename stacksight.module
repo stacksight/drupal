@@ -68,7 +68,7 @@ function stacksight_watchdog($log) {
 	$app_name = variable_get('stacksight_app');
 	$token = variable_get('stacksight_token');
 
-	if (!$app_name || $token) return;
+	if (!$app_name || !$token) return;
 
 	$ss_client = new SSDrupalClient($token, 'drupal');
 	$app = $ss_client->initApp($app_name);
