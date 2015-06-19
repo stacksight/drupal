@@ -63,7 +63,7 @@ function stacksight_watchdog($log) {
 	$ss_client = new SSDrupalClient($token, 'drupal');
 	$app = $ss_client->initApp($app_name);
 	if (!$app['success']) {
-		SSUtilities::error_log($result['message'], 'error');
+		SSUtilities::error_log($app['message'], 'error');
 		return;
 	}
 
@@ -104,6 +104,7 @@ function stacksight_watchdog($log) {
 	}
 
 	$res = $ss_client->publishEvent($data);
+	if (!$res['success']) SSUtilities::error_log($res['message'], 'error');
 }
 
 function stacksight_uninstall() {
