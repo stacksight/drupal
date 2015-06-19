@@ -32,16 +32,24 @@ function stacksight_admin() {
 function stacksight_menu() {
 	$items = array();
 
-	$items['admin/settings/stacksight'] = array(
+	$items['admin/config/development/stacksight'] = array(
 		'title' => 'StackSight',
 		'description' => 'StackSight integration module settings',
 		'page callback' => 'drupal_get_form',
 		'page arguments' => array('stacksight_admin'),
 		'access arguments' => array('administer stacksight settings'),
-		'type' => MENU_NORMAL_ITEM,
+		'weight' => -5,
 	);
 
 	return $items;
+}
+
+function stacksight_permission() {
+	return array(
+		'administer stacksight settings' => array(
+			'title' => t('Administer StackSight settings')
+		),
+	);
 }
 
 function stacksight_admin_submit($form, &$form_state) {
@@ -59,6 +67,8 @@ function stacksight_admin_submit($form, &$form_state) {
 function stacksight_watchdog($log) {
 	$app_name = variable_get('stacksight_app');
 	$token = variable_get('stacksight_token');
+
+	if (!$app_name || $token) return;
 
 	$ss_client = new SSDrupalClient($token, 'drupal');
 	$app = $ss_client->initApp($app_name);
