@@ -72,48 +72,60 @@ function stacksight_watchdog($log) {
 
 	$ss_client = new SSDrupalClient($token, 'drupal');
 	$app = $ss_client->initApp($app_name);
+	// SSUtilities::error_log(print_r($app, true));
+
 	if (!$app['success']) {
 		SSUtilities::error_log($app['message'], 'error');
 		return;
 	}
 
-	$data = array();
-	$data['key'] = $log['type'];
-	$data['name'] = t(str_replace("%", "@", $log['message']), json_decode(str_replace('%', '@',  json_encode($log['variables'])), true) );
-	$data['data']['description'] = $data['name'];
+	$message = t(str_replace("%", "@", $log['message']), json_decode(str_replace('%', '@',  json_encode($log['variables'])), true) );
 
-	switch ($log['type']) {
-	    case 'content':
-	        $data['design']['icon'] = 'fa-file-text';
-	        $data['design']['color'] = '#8FD5FF';
-	        break;
-	    case 'user':
-	       $data['design']['icon'] = 'fa-user';
-	       $data['design']['color'] = '#8664aa';
-	        break;
-	    case 'php':
-	    	$data['design']['icon'] = 'fa-code';
-	      	$data['design']['color'] = '#990000';
-	        break;
-	    case 'system':
-	       $data['design']['icon'] = 'fa-cubes';
-	       $data['design']['color'] = '#c79696';
-	        break;
-	    case 'actions':
-	       $data['design']['icon'] = 'fa-certificate';
-	       $data['design']['color'] = '#fd8e00';
-	        break;
-	    case 'cron':
-	       $data['design']['icon'] = 'fa-cogs';
-	       $data['design']['color'] = '#de1b16';
-	        break;
-	    default:
-	        $data['design']['color'] = '#19617a';
-	        $data['design']['icon'] = 'fa-bars';
-	        break;
+	if ($log['type'] != 'php') {
+		$data = array();
+		$data['key'] = $log['type'];
+		$data['name'] = $message;
+		$data['data']['description'] = $message;
+
+		switch ($log['type']) {
+		    case 'content':
+		        $data['design']['icon'] = 'fa-file-text';
+		        $data['design']['color'] = '#8FD5FF';
+		        break;
+		    case 'user':
+		       $data['design']['icon'] = 'fa-user';
+		       $data['design']['color'] = '#8664aa';
+		        break;
+		    case 'php':
+		    	$data['design']['icon'] = 'fa-code';
+		      	$data['design']['color'] = '#990000';
+		        break;
+		    case 'system':
+		       $data['design']['icon'] = 'fa-cubes';
+		       $data['design']['color'] = '#c79696';
+		        break;
+		    case 'actions':
+		       $data['design']['icon'] = 'fa-certificate';
+		       $data['design']['color'] = '#fd8e00';
+		        break;
+		    case 'cron':
+		       $data['design']['icon'] = 'fa-cogs';
+		       $data['design']['color'] = '#de1b16';
+		        break;
+		    default:
+		        $data['design']['color'] = '#19617a';
+		        $data['design']['icon'] = 'fa-bars';
+		        break;
+		}
+
+		$res = $ss_client->publishEvent($data);
+	} else {
+		$res = $ss_client->sendLog($message);
 	}
 
-	$res = $ss_client->publishEvent($data);
+	SSUtilities::error_log('result: ');
+	SSUtilities::error_log(print_r($res, true));
+
 	if (!$res['success']) SSUtilities::error_log($res['message'], 'error');
 }
 
