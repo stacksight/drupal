@@ -1,8 +1,13 @@
 <?php
 
-require('stacksight-php-sdk/platforms/SSDrupalClient.php');
+require_once('stacksight-php-sdk/SSUtilities.php');
+require_once('stacksight-php-sdk/SSHttpRequest.php');
+require_once('stacksight-php-sdk/SSClientBase.php');
+require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
+	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
+
 	$form = array();
 
 	$form['stacksight_app'] = array(
@@ -25,6 +30,18 @@ function stacksight_admin() {
 		'#required' => TRUE,
 	);
 	$form['#submit'][] = 'stacksight_admin_submit';
+
+	$app_stored = variable_get('stacksight');
+	if ($app_stored) {
+		$form['code'] = array(
+			'#markup' => theme('code_config', array('data' => array(
+				'_id' => $app_stored['_id'], 
+				'token' => $app_stored['token'], 
+				'module_path' => drupal_get_path('module', 'stacksight'),
+				'diagnostic' => stacksight_get_diagnostic($app_stored)
+			)))
+		);
+	}
 
 	return system_settings_form($form);
 }
@@ -57,29 +74,20 @@ function stacksight_admin_submit($form, &$form_state) {
 	$token = $form_state['values']['stacksight_token'];
 
 	$ss_client = new SSDrupalClient($token, 'drupal');
-	$result = $ss_client->initApp($app_name);
+	$result = $ss_client->createApp($app_name);
 
 	if ($result['success']) {
-		if ($result['message'] != 'LOADED') drupal_set_message('The app "'.$result['data']['name'].'" created successfully');
+		if ($result['new']) drupal_set_message('The app "'.$result['data']['name'].'" created successfully');
 	} else drupal_set_message($result['message'], 'error');
 }
 
 function stacksight_watchdog($log) {
+	global $ss_client;
+
 	$app_name = variable_get('stacksight_app');
 	$token = variable_get('stacksight_token');
 
-	if (!$app_name || !$token) return;
-
-	$ss_client = new SSDrupalClient($token, 'drupal');
-	$app = $ss_client->initApp($app_name);
-	// SSUtilities::error_log(print_r($app, true));
-
-	if (!$app['success']) {
-		SSUtilities::error_log($app['message'], 'error');
-		return;
-	}
-
-	$message = t(str_replace("%", "@", $log['message']), json_decode(str_replace('%', '@',  json_encode($log['variables'])), true) );
+	$message = strip_tags(t($log['message'], $log['variables']));
 
 	if ($log['type'] != 'php') {
 		$data = array();
@@ -120,17 +128,72 @@ function stacksight_watchdog($log) {
 
 		$res = $ss_client->publishEvent($data);
 	} else {
-		$res = $ss_client->sendLog($message);
+		$severity = stacksight_map_severity_level($log['severity']);
+		$res = $ss_client->sendLog($message, $severity);
 	}
 
-	SSUtilities::error_log('result: ');
-	SSUtilities::error_log(print_r($res, true));
-
 	if (!$res['success']) SSUtilities::error_log($res['message'], 'error');
+}
+
+function stacksight_map_severity_level($drupal_sev_level) {
+	$level = '';
+
+	switch ($drupal_sev_level) {
+		case WATCHDOG_ERROR:
+			$level = 'error';
+			break;
+
+		case WATCHDOG_WARNING:
+			$level = 'warn';
+			break;
+
+		case WATCHDOG_NOTICE:
+			$level = 'info';
+			break;
+		
+		case WATCHDOG_DEBUG:
+			$level = 'log';
+			break;
+	}
+
+	return $level;
 }
 
 function stacksight_uninstall() {
 	variable_del('stacksight');
 	variable_del('stacksight_app');
 	variable_del('stacksight_token');
+}
+
+function stacksight_theme() {
+	return array(
+		'code_config' => array(
+			'variables' => array(
+				'data' => NULL
+			),
+			'template' => 'code_config',
+		),
+	);
+}
+
+function stacksight_get_diagnostic($app) {
+    $list = array();
+
+    if (!defined('STACKSIGHT_APP_ID')) {
+        $list[] = t("App Id is not defined");
+    } elseif (STACKSIGHT_APP_ID != $app['_id']) {
+        $list[] = t("App Ids do not match");
+    }
+
+    if (!defined('STACKSIGHT_TOKEN')) {
+        $list[] = t("Token is not defined<br>");
+    } elseif(STACKSIGHT_TOKEN != $app['token']) {
+        $list[] = t("Tokens do not match<br>"); 
+    }
+
+    if (!defined('STACKSIGHT_BOOTSTRAPED')) {
+        $list[] = t("bootstrap-drupal.php is not included in settings.php<br>");
+    }
+
+    return $list;
 }
