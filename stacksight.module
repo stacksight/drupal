@@ -159,12 +159,6 @@ function stacksight_map_severity_level($drupal_sev_level) {
 	return $level;
 }
 
-function stacksight_uninstall() {
-	variable_del('stacksight');
-	variable_del('stacksight_app');
-	variable_del('stacksight_token');
-}
-
 function stacksight_theme() {
 	return array(
 		'code_config' => array(

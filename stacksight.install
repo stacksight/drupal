@@ -1,0 +1,7 @@
+<?php
+
+function stacksight_uninstall() {
+	variable_del('stacksight');
+	variable_del('stacksight_app');
+	variable_del('stacksight_token');
+}

@@ -1,3 +1,4 @@
+<?php if (!empty($data['diagnostic'])): ?>
 <div class="ss-config-block">
 <p><?php echo t("Insert this configuration code (start-end block) at the end of your settings.php") ?>:</p>
 <pre class="code-ss-inlcude">
@@ -8,6 +9,7 @@
 <span class="code-comments">// StackSight end config</span>
 </pre>
 </div>
+<?php endif ?>
 
 <div class="ss-diagnostic-block">
     <h3><?php echo t('settings.php status') ?></h3>
