@@ -3,6 +3,7 @@
 require_once('stacksight-php-sdk/SSUtilities.php');
 require_once('stacksight-php-sdk/SSHttpRequest.php');
 require_once('stacksight-php-sdk/SSClientBase.php');
+require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
 require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
@@ -84,55 +85,25 @@ function stacksight_admin_submit($form, &$form_state) {
 function stacksight_watchdog($log) {
 	global $ss_client;
 
+	$res = array();
 	$app_name = variable_get('stacksight_app');
 	$token = variable_get('stacksight_token');
-
+	// exclude certain events
+	$exclude = array('content');
 	$message = strip_tags(t($log['message'], $log['variables']));
+	// SSUtilities::error_log($log);
 
-	if ($log['type'] != 'php') {
-		$data = array();
-		$data['key'] = $log['type'];
-		$data['name'] = $message;
-		$data['data']['description'] = $message;
-
-		switch ($log['type']) {
-		    case 'content':
-		        $data['design']['icon'] = 'fa-file-text';
-		        $data['design']['color'] = '#8FD5FF';
-		        break;
-		    case 'user':
-		       $data['design']['icon'] = 'fa-user';
-		       $data['design']['color'] = '#8664aa';
-		        break;
-		    case 'php':
-		    	$data['design']['icon'] = 'fa-code';
-		      	$data['design']['color'] = '#990000';
-		        break;
-		    case 'system':
-		       $data['design']['icon'] = 'fa-cubes';
-		       $data['design']['color'] = '#c79696';
-		        break;
-		    case 'actions':
-		       $data['design']['icon'] = 'fa-certificate';
-		       $data['design']['color'] = '#fd8e00';
-		        break;
-		    case 'cron':
-		       $data['design']['icon'] = 'fa-cogs';
-		       $data['design']['color'] = '#de1b16';
-		        break;
-		    default:
-		        $data['design']['color'] = '#19617a';
-		        $data['design']['icon'] = 'fa-bars';
-		        break;
-		}
-
-		$res = $ss_client->publishEvent($data);
-	} else {
+	if ($log['type'] == 'php') {
 		$severity = stacksight_map_severity_level($log['severity']);
 		$res = $ss_client->sendLog($message, $severity);
+	} elseif (!in_array($log['type'], $exclude)) {
+		$event_data = SSEventsMessageMapping::composeEventData(array(
+			'object_type' => $log['type']
+		), $message);
+		$res = $ss_client->publishEvent($event_data);
 	}
 
-	if (!$res['success']) SSUtilities::error_log($res['message'], 'error');
+	if ($res && !$res['success']) SSUtilities::error_log($res['message'], 'error');
 }
 
 function stacksight_map_severity_level($drupal_sev_level) {
@@ -190,4 +161,49 @@ function stacksight_get_diagnostic($app) {
     }
 
     return $list;
+}
+
+function stacksight_node_update($node) {
+	global $ss_client;
+
+	if (empty($node)) return;
+
+	$event_data = SSEventsMessageMapping::composeEventData(array(
+		'action' => 'updated',
+		'object_type' => 'content',
+		'object_subtype' => $node->type,
+		'object_id' => $node->nid,
+		'object_name' => $node->title
+	));
+	$res = $ss_client->publishEvent($event_data);
+}
+
+function stacksight_node_insert($node) {
+	global $ss_client;
+
+	if (empty($node)) return;
+
+	$event_data = SSEventsMessageMapping::composeEventData(array(
+		'action' => 'created',
+		'object_type' => 'content',
+		'object_subtype' => $node->type,
+		'object_id' => $node->nid,
+		'object_name' => $node->title
+	));
+	$res = $ss_client->publishEvent($event_data);
+}
+
+function stacksight_node_delete($node) {
+	global $ss_client;
+
+	if (empty($node)) return;
+
+	$event_data = SSEventsMessageMapping::composeEventData(array(
+		'action' => 'deleted',
+		'object_type' => 'content',
+		'object_subtype' => $node->type,
+		'object_id' => $node->nid,
+		'object_name' => $node->title
+	));
+	$res = $ss_client->publishEvent($event_data);
 }
