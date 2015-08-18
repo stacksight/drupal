@@ -11,13 +11,13 @@ function stacksight_admin() {
 
 	$form = array();
 
-	$form['stacksight_app'] = array(
+	$form['stacksight_app_id'] = array(
 		'#type' => 'textfield',
-		'#title' => t('App'),
-		'#default_value' => variable_get('stacksight_app', ''),
-		'#size' => 64,
-		'#maxlength' => 64,
-		'#description' => t("An app name within mean network"),
+		'#title' => t('App ID'),
+		'#default_value' => variable_get('stacksight_app_id', ''),
+		'#size' => 24,
+		'#maxlength' => 24,
+		'#description' => t("An application id created at mean network"),
 		'#required' => TRUE,
 	);
 
@@ -25,21 +25,23 @@ function stacksight_admin() {
 		'#type' => 'textfield',
 		'#title' => t('Access Token'),
 		'#default_value' => variable_get('stacksight_token', ''),
-		'#size' => 64,
-		'#maxlength' => 64,
+		'#size' => 68,
+		'#maxlength' => 68,
 		'#description' => t("An access token given by mean network"),
 		'#required' => TRUE,
 	);
 	$form['#submit'][] = 'stacksight_admin_submit';
 
-	$app_stored = variable_get('stacksight');
-	if ($app_stored) {
+
+	$app_id = variable_get('stacksight_app_id');
+	$token = variable_get('stacksight_token');
+	if ($app_id && $token) {
 		$form['code'] = array(
 			'#markup' => theme('code_config', array('data' => array(
-				'_id' => $app_stored['_id'], 
-				'token' => $app_stored['token'], 
+				'_id' => $app_id, 
+				'token' => $token, 
 				'module_path' => drupal_get_path('module', 'stacksight'),
-				'diagnostic' => stacksight_get_diagnostic($app_stored)
+				'diagnostic' => stacksight_get_diagnostic($app_id, $token)
 			)))
 		);
 	}
@@ -71,7 +73,7 @@ function stacksight_permission() {
 }
 
 function stacksight_admin_submit($form, &$form_state) {
-	$app_name = $form_state['values']['stacksight_app'];
+	/*$app_name = $form_state['values']['stacksight_app'];
 	$token = $form_state['values']['stacksight_token'];
 
 	$ss_client = new SSDrupalClient($token, 'drupal');
@@ -79,28 +81,29 @@ function stacksight_admin_submit($form, &$form_state) {
 
 	if ($result['success']) {
 		if ($result['new']) drupal_set_message('The app "'.$result['data']['name'].'" created successfully');
-	} else drupal_set_message($result['message'], 'error');
+	} else drupal_set_message($result['message'], 'error');*/
 }
 
 function stacksight_watchdog($log) {
 	global $ss_client;
 
+	// SSUtilities::error_log($log, 'error');
+
 	$res = array();
-	$app_name = variable_get('stacksight_app');
-	$token = variable_get('stacksight_token');
 	// exclude certain events
 	$exclude = array('content');
-	$message = strip_tags(t($log['message'], $log['variables']));
+	if (isset($log['variables'])) $message = strip_tags(t($log['message'], $log['variables']));
+	else $message = strip_tags(t($log['message']));
 	// SSUtilities::error_log($log);
 
 	if ($log['type'] == 'php') {
 		$severity = stacksight_map_severity_level($log['severity']);
 		$res = $ss_client->sendLog($message, $severity);
 	} elseif (!in_array($log['type'], $exclude)) {
-		$event_data = SSEventsMessageMapping::composeEventData(array(
+		/*$event_data = SSEventsMessageMapping::composeEventData(array(
 			'object_type' => $log['type']
 		), $message);
-		$res = $ss_client->publishEvent($event_data);
+		$res = $ss_client->publishEvent($event_data);*/
 	}
 
 	if ($res && !$res['success']) SSUtilities::error_log($res['message'], 'error');
@@ -141,18 +144,18 @@ function stacksight_theme() {
 	);
 }
 
-function stacksight_get_diagnostic($app) {
+function stacksight_get_diagnostic($app_id, $token) {
     $list = array();
 
     if (!defined('STACKSIGHT_APP_ID')) {
         $list[] = t("App Id is not defined");
-    } elseif (STACKSIGHT_APP_ID != $app['_id']) {
+    } elseif (STACKSIGHT_APP_ID != $app_id) {
         $list[] = t("App Ids do not match");
     }
 
     if (!defined('STACKSIGHT_TOKEN')) {
         $list[] = t("Token is not defined<br>");
-    } elseif(STACKSIGHT_TOKEN != $app['token']) {
+    } elseif(STACKSIGHT_TOKEN != $token) {
         $list[] = t("Tokens do not match<br>"); 
     }
 
@@ -170,53 +173,82 @@ function stacksight_get_availible_updates() {
 	echo '<pre>'.print_r($updates, true).'</pre>';
 }
 
+
+
+
+////////////
+// Events //
+////////////
+
 function stacksight_node_update($node) {
-	global $ss_client;
+	global $ss_client, $user;
 
 	if (empty($node)) return;
 
-	$event_data = SSEventsMessageMapping::composeEventData(array(
+	$url_options = array('absolute' => true);
+	$res = $ss_client->publishEvent(array(
 		'action' => 'updated',
-		'object_type' => 'content',
-		'object_subtype' => $node->type,
-		'object_id' => $node->nid,
-		'object_name' => $node->title
+		'type' => 'content',
+		'subtype' => $node->type,
+		'name' => $node->title,
+		'url' => url('node/' . $node->nid, $url_options),
+		'user' => array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		)
 	));
-	$res = $ss_client->publishEvent($event_data);
 }
 
 function stacksight_node_insert($node) {
-	global $ss_client;
+	global $ss_client, $user;
 
 	if (empty($node)) return;
 
-	$event_data = SSEventsMessageMapping::composeEventData(array(
+	$url_options = array('absolute' => true);
+	$res = $ss_client->publishEvent(array(
 		'action' => 'created',
-		'object_type' => 'content',
-		'object_subtype' => $node->type,
-		'object_id' => $node->nid,
-		'object_name' => $node->title
+		'type' => 'content',
+		'subtype' => $node->type,
+		'name' => $node->title,
+		'url' => url('node/' . $node->nid, $url_options),
+		'user' => array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		)
 	));
-	$res = $ss_client->publishEvent($event_data);
 }
 
 function stacksight_node_delete($node) {
-	global $ss_client;
+	global $ss_client, $user;
 
 	if (empty($node)) return;
 
-	$event_data = SSEventsMessageMapping::composeEventData(array(
+	$url_options = array('absolute' => true);
+	$res = $ss_client->publishEvent(array(
 		'action' => 'deleted',
-		'object_type' => 'content',
-		'object_subtype' => $node->type,
-		'object_id' => $node->nid,
-		'object_name' => $node->title
+		'type' => 'content',
+		'subtype' => $node->type,
+		'name' => $node->title,
+		'user' => array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		)
 	));
-	$res = $ss_client->publishEvent($event_data);
 }
 
 // user
 function stacksight_user_insert(&$edit, $account, $category) {
+	global $ss_client;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($account->status == 1) $event['url'] = url('user/'.$account->uid, $url_options);
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'added',
+		'type' => 'user',
+		'name' => $account->name
+	) + $event);
 	// SSUtilities::error_log('-------------User added----------------');
 	// SSUtilities::error_log($account);
 }
@@ -231,16 +263,47 @@ function stacksight_user_update(&$edit, $account, $category) {
 }
 
 function stacksight_user_delete($account) {
+	global $ss_client;
+	
+	$url_options = array('absolute' => true);
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'deleted',
+		'type' => 'user',
+		'name' => $account->name
+	));
 	// SSUtilities::error_log('-------------User will be deleted----------------');
   	// SSUtilities::error_log($account);
 }
 
 function stacksight_user_login(&$edit, $account) {
+	global $ss_client;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($account->status == 1) $event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'logged in',
+		'type' => 'user',
+		'name' => '',
+	) + $event);
 	// SSUtilities::error_log('-------------User logged in----------------');
 	// SSUtilities::error_log($account);
 }
 
 function stacksight_user_logout($account) {
+	global $ss_client;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($account->status == 1) $event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'logged out',
+		'type' => 'user',
+		'name' => '',
+	) + $event);
 	// SSUtilities::error_log('-------------User logged out----------------');
   	// SSUtilities::error_log($account);
 }
