@@ -163,6 +163,13 @@ function stacksight_get_diagnostic($app) {
     return $list;
 }
 
+function stacksight_get_availible_updates() {
+	module_load_include('inc', 'update', 'update.report');
+	$available = update_get_available(TRUE);
+	$updates = update_calculate_project_data($available);
+	echo '<pre>'.print_r($updates, true).'</pre>';
+}
+
 function stacksight_node_update($node) {
 	global $ss_client;
 
@@ -206,4 +213,90 @@ function stacksight_node_delete($node) {
 		'object_name' => $node->title
 	));
 	$res = $ss_client->publishEvent($event_data);
+}
+
+// user
+function stacksight_user_insert(&$edit, $account, $category) {
+	// SSUtilities::error_log('-------------User added----------------');
+	// SSUtilities::error_log($account);
+}
+
+function stacksight_user_update(&$edit, $account, $category) {
+	// $account contain additional info for events, such as:
+	// picture_delete - if user checked to delete avatar
+	// picture_upload - if your chose a file to upload
+	// user status - blocked - active
+  // SSUtilities::error_log('-------------User updated----------------');
+  // SSUtilities::error_log($account);
+}
+
+function stacksight_user_delete($account) {
+	// SSUtilities::error_log('-------------User will be deleted----------------');
+  	// SSUtilities::error_log($account);
+}
+
+function stacksight_user_login(&$edit, $account) {
+	// SSUtilities::error_log('-------------User logged in----------------');
+	// SSUtilities::error_log($account);
+}
+
+function stacksight_user_logout($account) {
+	// SSUtilities::error_log('-------------User logged out----------------');
+  	// SSUtilities::error_log($account);
+}
+
+// files
+function stacksight_file_presave($file) {
+	// required that condition cause this hook is called 3 times with different parameters
+	if (!isset($file->original) || !$file->status) return;
+
+	$level = 'file_hooks';
+	// SSUtilities::error_log('-------------file presave----------------', $level);
+	// SSUtilities::error_log($file, $level);
+	// SSUtilities::error_log('-------------file object----------------', $level);
+	// SSUtilities::error_log(file_create_url($file->uri), $level);
+
+
+  // Add a message to the log, if the file is a jpg
+  /*$validate = file_validate_extensions($file, 'jpg');
+  if (empty($validate)) {
+    watchdog('file', 'A jpg has been added.');
+  }*/
+}
+
+function stacksight_file_delete($file) {
+	$level = 'file_hooks';
+	// SSUtilities::error_log('-------------file is being deleted----------------', $level);
+	// SSUtilities::error_log($file, $level);
+}
+
+
+// comments
+function stacksight_comment_delete($comment) {
+	$level = 'comments_hooks';
+	// SSUtilities::error_log('-------------comment is being deleted----------------', $level);
+	// SSUtilities::error_log($comment, $level);
+}
+
+function stacksight_comment_insert($comment) {
+	$level = 'comments_hooks';
+	// SSUtilities::error_log('-------------comment is being inserted----------------', $level);
+	// SSUtilities::error_log($comment, $level);
+}
+
+function stacksight_comment_update($comment) {
+	$level = 'comments_hooks';
+	// SSUtilities::error_log('-------------comment is being updated----------------', $level);
+	// SSUtilities::error_log($comment, $level);
+
+	// unpublished
+	if (isset($comment->original) && $comment->status == COMMENT_NOT_PUBLISHED && $comment->original->status == COMMENT_PUBLISHED) {
+		// SSUtilities::error_log('-------------comment is being unpublished----------------', $level);
+	}
+}
+
+function stacksight_comment_publish($comment) {
+	$level = 'comments_hooks';
+	// SSUtilities::error_log('-------------comment is being published----------------', $level);
+	// SSUtilities::error_log($comment, $level);
 }
