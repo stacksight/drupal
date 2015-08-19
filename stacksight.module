@@ -183,57 +183,61 @@ function stacksight_get_availible_updates() {
 function stacksight_node_update($node) {
 	global $ss_client, $user;
 
-	if (empty($node)) return;
-
+	$event = array();
 	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+
 	$res = $ss_client->publishEvent(array(
 		'action' => 'updated',
 		'type' => 'content',
 		'subtype' => $node->type,
 		'name' => $node->title,
-		'url' => url('node/' . $node->nid, $url_options),
-		'user' => array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		)
-	));
+		'url' => url('node/' . $node->nid, $url_options)
+	) + $event);
 }
 
 function stacksight_node_insert($node) {
 	global $ss_client, $user;
 
-	if (empty($node)) return;
-
+	$event = array();
 	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
 	$res = $ss_client->publishEvent(array(
 		'action' => 'created',
 		'type' => 'content',
 		'subtype' => $node->type,
 		'name' => $node->title,
-		'url' => url('node/' . $node->nid, $url_options),
-		'user' => array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		)
-	));
+		'url' => url('node/' . $node->nid, $url_options)
+	) + $event);
 }
 
 function stacksight_node_delete($node) {
 	global $ss_client, $user;
 
-	if (empty($node)) return;
-
+	$event = array();
 	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
 	$res = $ss_client->publishEvent(array(
 		'action' => 'deleted',
 		'type' => 'content',
 		'subtype' => $node->type,
-		'name' => $node->title,
-		'user' => array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		)
-	));
+		'name' => $node->title
+	) + $event);
 }
 
 // user
@@ -242,38 +246,75 @@ function stacksight_user_insert(&$edit, $account, $category) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($account->status == 1) $event['url'] = url('user/'.$account->uid, $url_options);
+	$event['url'] = url('user/'.$account->uid, $url_options);
 
 	$res = $ss_client->publishEvent(array(
 		'action' => 'added',
 		'type' => 'user',
 		'name' => $account->name
 	) + $event);
-	// SSUtilities::error_log('-------------User added----------------');
-	// SSUtilities::error_log($account);
 }
 
 function stacksight_user_update(&$edit, $account, $category) {
-	// $account contain additional info for events, such as:
-	// picture_delete - if user checked to delete avatar
-	// picture_upload - if your chose a file to upload
-	// user status - blocked - active
-  // SSUtilities::error_log('-------------User updated----------------');
-  // SSUtilities::error_log($account);
+	global $ss_client, $user;
+
+	$event = $changed = array();
+	$url_options = array('absolute' => true);
+	$event['url'] = url('user/'.$account->uid, $url_options);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+
+	if (isset($account->original)) {
+		$origin = $account->original;
+		// name
+		if ($origin->name != $account->name) $changed[] = t('name (@str)', array('@str' => $account->name));
+		// timezone
+		if ($origin->timezone != $account->timezone) $changed[] = t('time zone (@str)', array('@str' => $account->timezone));
+		// password
+		if ($origin->pass != $account->pass) $changed[] = 'password';
+		// email
+		if ($origin->mail != $account->mail) $changed[] = t('email (@str)', array('@str' => $account->mail));
+		// active/blocked
+		if ($origin->status != $account->status) {
+			if ($account->status == 1) $changed[] = t('status (acvive)');
+			elseif ($account->status == 0) $changed[] = t('status (blocked)');
+		}
+		// avatar uploaded
+		if (!empty($account->picture_upload)) $changed[] = t('avatar (new)');
+		// avatar deleted
+		if ($account->picture_delete) $changed[] = t('avatar (removed)');
+	}
+
+	if (empty($changed)) $changed[] = 'account';
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'changed',
+		'type' => 'user',
+		'name' => implode(', ', $changed)
+	) + $event);
 }
 
 function stacksight_user_delete($account) {
-	global $ss_client;
+	global $ss_client, $user;
 	
+	$event = array();
 	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
 
 	$res = $ss_client->publishEvent(array(
 		'action' => 'deleted',
 		'type' => 'user',
 		'name' => $account->name
-	));
-	// SSUtilities::error_log('-------------User will be deleted----------------');
-  	// SSUtilities::error_log($account);
+	) + $event);
 }
 
 function stacksight_user_login(&$edit, $account) {
@@ -281,15 +322,13 @@ function stacksight_user_login(&$edit, $account) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($account->status == 1) $event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
+	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
 
 	$res = $ss_client->publishEvent(array(
 		'action' => 'logged in',
 		'type' => 'user',
 		'name' => '',
 	) + $event);
-	// SSUtilities::error_log('-------------User logged in----------------');
-	// SSUtilities::error_log($account);
 }
 
 function stacksight_user_logout($account) {
@@ -297,15 +336,13 @@ function stacksight_user_logout($account) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($account->status == 1) $event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
+	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
 
 	$res = $ss_client->publishEvent(array(
 		'action' => 'logged out',
 		'type' => 'user',
 		'name' => '',
 	) + $event);
-	// SSUtilities::error_log('-------------User logged out----------------');
-  	// SSUtilities::error_log($account);
 }
 
 // files
@@ -313,42 +350,128 @@ function stacksight_file_presave($file) {
 	// required that condition cause this hook is called 3 times with different parameters
 	if (!isset($file->original) || !$file->status) return;
 
-	$level = 'file_hooks';
-	// SSUtilities::error_log('-------------file presave----------------', $level);
-	// SSUtilities::error_log($file, $level);
-	// SSUtilities::error_log('-------------file object----------------', $level);
-	// SSUtilities::error_log(file_create_url($file->uri), $level);
+	global $ss_client, $user;
 
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+	$file_ex = explode('/', $file->filemime);
+	if (isset($file_ex[0])) {
+		$event['subtype'] = $file_ex[0];
+	}
+	$event['url'] = file_create_url($file->uri);
 
-  // Add a message to the log, if the file is a jpg
-  /*$validate = file_validate_extensions($file, 'jpg');
-  if (empty($validate)) {
-    watchdog('file', 'A jpg has been added.');
-  }*/
+	$res = $ss_client->publishEvent(array(
+		'action' => 'uploaded',
+		'type' => 'file',
+		'name' => $file->filename,
+		'id' => $file->fid,
+		'data' => array(
+			'file_name' => $file->filename,
+			'type' => $file->filemime,
+			'size' => $file->filesize,
+			'url' => $event['url'],
+		)
+	) + $event);
 }
 
 function stacksight_file_delete($file) {
-	$level = 'file_hooks';
-	// SSUtilities::error_log('-------------file is being deleted----------------', $level);
-	// SSUtilities::error_log($file, $level);
+	global $ss_client, $user;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+	$file_ex = explode('/', $file->filemime);
+	if (isset($file_ex[0])) {
+		$event['subtype'] = $file_ex[0];
+	}
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'deleted',
+		'type' => 'file',
+		'name' => $file->filename,
+		'id' => $file->fid,
+		'data' => array(
+			'file_name' => $file->filename,
+			'type' => $file->filemime,
+			'size' => $file->filesize
+		)
+	) + $event);
 }
 
 
 // comments
 function stacksight_comment_delete($comment) {
-	$level = 'comments_hooks';
+	global $ss_client, $user;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+	if ($comment->subject) $event['name'] = $comment->subject;
+
+	$lang = $comment->language;
+	if (isset($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
+		if (!$event['name']) $event['name'] = mb_substr($event['data']['body'], 0, 16).'...';
+	}
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'deleted',
+		'type' => 'comment'
+	) + $event);
+
+	// $level = 'comments_hooks';
 	// SSUtilities::error_log('-------------comment is being deleted----------------', $level);
 	// SSUtilities::error_log($comment, $level);
 }
 
 function stacksight_comment_insert($comment) {
-	$level = 'comments_hooks';
+	if ($comment->status != COMMENT_NOT_PUBLISHED) return;
+
+	global $ss_client, $user;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	if ($user->uid) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+	if ($comment->subject) $event['name'] = $comment->subject;
+
+	$lang = $comment->language;
+	if (isset($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
+	}
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'added',
+		'type' => 'comment'
+	) + $event);
+
+	// $level = 'comments_hooks';
 	// SSUtilities::error_log('-------------comment is being inserted----------------', $level);
 	// SSUtilities::error_log($comment, $level);
 }
 
 function stacksight_comment_update($comment) {
-	$level = 'comments_hooks';
+	// $level = 'comments_hooks';
 	// SSUtilities::error_log('-------------comment is being updated----------------', $level);
 	// SSUtilities::error_log($comment, $level);
 
