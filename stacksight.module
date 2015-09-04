@@ -46,7 +46,7 @@ function stacksight_admin() {
 		);
 	}
 
-	stacksight_get_availible_updates();
+	//stacksight_get_availible_updates();
 
 	// trigger_error('hmm');
 
