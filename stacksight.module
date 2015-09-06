@@ -46,7 +46,25 @@ function stacksight_admin() {
 		);
 	}
 
-	//stacksight_get_availible_updates();
+	$updates = stacksight_get_availible_updates();
+	$upd = array();
+	foreach ($updates as $key => $uitem) {
+		$upd[] = array(
+			'title' => $uitem['title'],
+			'release_ts' => $uitem['datestamp'],
+			'current_version' => $uitem['existing_version'],
+			'latest_version' => $uitem['latest_version'],
+			'type' => $uitem['project_type'],
+			'status' => $uitem['status'],
+			// 'description' => $uitem['status'],
+			'link' => $uitem['link'],
+			'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
+			'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
+			// 'update_link' => '',
+		);
+	}
+	global $ss_client;
+	$ss_client->sendUpdates(array('data' => $upd));
 
 	// trigger_error('hmm');
 
@@ -174,7 +192,7 @@ function stacksight_get_availible_updates() {
 	module_load_include('inc', 'update', 'update.report');
 	$available = update_get_available(TRUE);
 	$updates = update_calculate_project_data($available);
-	echo '<pre>'.print_r($updates, true).'</pre>';
+	return $updates;
 }
 
 
