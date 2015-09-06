@@ -13,11 +13,11 @@ function stacksight_admin() {
 
 	$form['stacksight_app_id'] = array(
 		'#type' => 'textfield',
-		'#title' => t('App ID'),
+		'#title' => t('Stack ID'),
 		'#default_value' => variable_get('stacksight_app_id', ''),
 		'#size' => 24,
 		'#maxlength' => 24,
-		'#description' => t("An application id created at mean network"),
+		'#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
 		'#required' => TRUE,
 	);
 
@@ -27,7 +27,7 @@ function stacksight_admin() {
 		'#default_value' => variable_get('stacksight_token', ''),
 		'#size' => 68,
 		'#maxlength' => 68,
-		'#description' => t("An access token given by mean network"),
+		'#description' => t("An access token as created at <a href='https://apps.stacksight.io'>stacksight.io</a>"),
 		'#required' => TRUE,
 	);
 	$form['#submit'][] = 'stacksight_admin_submit';
