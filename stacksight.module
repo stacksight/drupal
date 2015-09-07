@@ -30,8 +30,6 @@ function stacksight_admin() {
 		'#description' => t("An access token as created at <a href='https://apps.stacksight.io'>stacksight.io</a>"),
 		'#required' => TRUE,
 	);
-	$form['#submit'][] = 'stacksight_admin_submit';
-
 
 	$app_id = variable_get('stacksight_app_id');
 	$token = variable_get('stacksight_token');
@@ -63,10 +61,11 @@ function stacksight_admin() {
 			// 'update_link' => '',
 		);
 	}
-	global $ss_client;
-	$ss_client->sendUpdates(array('data' => $upd));
+	
+	// trigger_error('bb');
 
-	// trigger_error('hmm');
+	global $ss_client;
+	if ($ss_client) $ss_client->sendUpdates(array('data' => $upd));
 
 	return system_settings_form($form);
 }
@@ -94,21 +93,10 @@ function stacksight_permission() {
 	);
 }
 
-function stacksight_admin_submit($form, &$form_state) {
-	/*$app_name = $form_state['values']['stacksight_app'];
-	$token = $form_state['values']['stacksight_token'];
-
-	$ss_client = new SSDrupalClient($token, 'drupal');
-	$result = $ss_client->createApp($app_name);
-
-	if ($result['success']) {
-		if ($result['new']) drupal_set_message('The app "'.$result['data']['name'].'" created successfully');
-	} else drupal_set_message($result['message'], 'error');*/
-}
-
 function stacksight_watchdog($log) {
 	global $ss_client;
 
+	if (!$ss_client) return;
 	// SSUtilities::error_log($log, 'error');
 
 	$res = array();
@@ -116,16 +104,12 @@ function stacksight_watchdog($log) {
 	$exclude = array('content');
 	if (isset($log['variables'])) $message = strip_tags(t($log['message'], $log['variables']));
 	else $message = strip_tags(t($log['message']));
-	// SSUtilities::error_log($log);
 
 	if ($log['type'] == 'php') {
 		$severity = stacksight_map_severity_level($log['severity']);
 		$res = $ss_client->sendLog($message, $severity);
 	} elseif (!in_array($log['type'], $exclude)) {
-		/*$event_data = SSEventsMessageMapping::composeEventData(array(
-			'object_type' => $log['type']
-		), $message);
-		$res = $ss_client->publishEvent($event_data);*/
+
 	}
 
 	if ($res && !$res['success']) SSUtilities::error_log($res['message'], 'error');
