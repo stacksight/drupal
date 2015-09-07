@@ -61,7 +61,7 @@ function stacksight_admin() {
 			// 'update_link' => '',
 		);
 	}
-	
+
 	// trigger_error('bb');
 
 	global $ss_client;
@@ -188,6 +188,7 @@ function stacksight_get_availible_updates() {
 
 function stacksight_node_update($node) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -209,6 +210,7 @@ function stacksight_node_update($node) {
 
 function stacksight_node_insert($node) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -229,6 +231,7 @@ function stacksight_node_insert($node) {
 
 function stacksight_node_delete($node) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -249,6 +252,7 @@ function stacksight_node_delete($node) {
 // user
 function stacksight_user_insert(&$edit, $account, $category) {
 	global $ss_client;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -263,6 +267,7 @@ function stacksight_user_insert(&$edit, $account, $category) {
 
 function stacksight_user_update(&$edit, $account, $category) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = $changed = array();
 	$url_options = array('absolute' => true);
@@ -306,6 +311,7 @@ function stacksight_user_update(&$edit, $account, $category) {
 
 function stacksight_user_delete($account) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 	
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -325,6 +331,7 @@ function stacksight_user_delete($account) {
 
 function stacksight_user_login(&$edit, $account) {
 	global $ss_client;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -339,6 +346,7 @@ function stacksight_user_login(&$edit, $account) {
 
 function stacksight_user_logout($account) {
 	global $ss_client;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -353,10 +361,12 @@ function stacksight_user_logout($account) {
 
 // files
 function stacksight_file_presave($file) {
+	global $ss_client, $user;
+	if (!$ss_client) return;
+
 	// required that condition cause this hook is called 3 times with different parameters
 	if (!isset($file->original) || !$file->status) return;
 
-	global $ss_client, $user;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -388,6 +398,7 @@ function stacksight_file_presave($file) {
 
 function stacksight_file_delete($file) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -419,6 +430,7 @@ function stacksight_file_delete($file) {
 // comments
 function stacksight_comment_delete($comment) {
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -447,9 +459,10 @@ function stacksight_comment_delete($comment) {
 }
 
 function stacksight_comment_insert($comment) {
+	global $ss_client, $user;
+	if (!$ss_client) return;
 	if ($comment->status != COMMENT_NOT_PUBLISHED) return;
 
-	global $ss_client, $user;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -471,18 +484,11 @@ function stacksight_comment_insert($comment) {
 		'type' => 'comment',
 		'id' => $comment->cid
 	) + $event);
-
-	// $level = 'comments_hooks';
-	// SSUtilities::error_log('-------------comment is being inserted----------------', $level);
-	// SSUtilities::error_log($comment, $level);
 }
 
 function stacksight_comment_update($comment) {
-	// $level = 'comments_hooks';
-	// SSUtilities::error_log('-------------comment is being updated----------------', $level);
-	// SSUtilities::error_log($comment, $level);
-
 	global $ss_client, $user;
+	if (!$ss_client) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
