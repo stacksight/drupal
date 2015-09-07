@@ -1,5 +1,5 @@
 name = StackSight integration for Drupal
 description = Provides StackSight integration for Drupal
-package = "Linnovate LTD"
+package = "Stacksight LTD"
 dependencies[] = update
 core = "7.x"
