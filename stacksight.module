@@ -44,28 +44,8 @@ function stacksight_admin() {
 		);
 	}
 
-	$updates = stacksight_get_availible_updates();
-	$upd = array();
-	foreach ($updates as $key => $uitem) {
-		$upd[] = array(
-			'title' => $uitem['title'],
-			'release_ts' => $uitem['datestamp'],
-			'current_version' => $uitem['existing_version'],
-			'latest_version' => $uitem['latest_version'],
-			'type' => $uitem['project_type'],
-			'status' => $uitem['status'],
-			// 'description' => $uitem['status'],
-			'link' => $uitem['link'],
-			'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
-			'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
-			// 'update_link' => '',
-		);
-	}
-
-	// trigger_error('bb');
-
-	global $ss_client;
-	if ($ss_client) $ss_client->sendUpdates(array('data' => $upd));
+//update LK
+  stacksight_updates_publish();
 
 	return system_settings_form($form);
 }
@@ -173,10 +153,16 @@ function stacksight_get_diagnostic($app_id, $token) {
 }
 
 function stacksight_get_availible_updates() {
-	module_load_include('inc', 'update', 'update.report');
-	$available = update_get_available(TRUE);
-	$updates = update_calculate_project_data($available);
-	return $updates;
+  if (module_exists('update')){
+        //  module_load_include('inc', 'update', 'update.report.inc');
+          // in module_load_include docs states that require_once should be used instead  
+          require_once DRUPAL_ROOT . '/modules/update/update.module';
+          $available = update_get_available(TRUE);
+          $updates = update_calculate_project_data($available);
+          return $updates;
+  }else{
+    watchdog('stacksight','update module does not exist - not updating');
+  }
 }
 
 
@@ -522,6 +508,31 @@ function stacksight_comment_publish($comment) {
 	// SSUtilities::error_log($comment, $level);
 }
 
+function stacksight_updates_publish(){
+	$updates = stacksight_get_availible_updates();
+	$upd = array();
+	foreach ($updates as $key => $uitem) {
+		$upd[] = array(
+			'title' => $uitem['title'],
+			'release_ts' => $uitem['datestamp'],
+			'current_version' => $uitem['existing_version'],
+			'latest_version' => $uitem['latest_version'],
+			'type' => $uitem['project_type'],
+			'status' => $uitem['status'],
+			// 'description' => $uitem['status'],
+			'link' => $uitem['link'],
+			'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
+			'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
+			// 'update_link' => '',
+		);
+	}
+
+	// trigger_error('bb');
+
+	global $ss_client;
+	if ($ss_client) $ss_client->sendUpdates(array('data' => $upd));
+}
+
 function array_diff_assoc_recursive($array1, $array2) {
     $difference=array();
     foreach($array1 as $key => $value) {
@@ -539,3 +550,25 @@ function array_diff_assoc_recursive($array1, $array2) {
     }
     return $difference;
 }
+
+/* update on cron run */
+function stacksight_cron(){
+} 
+  watchdog('stacksight','stacksight invoked by cron');
+// Default to an hourly interval. Of course, cron has to be running at least
+  // hourly for this to work.
+  $interval = variable_get('stacksight_interval', 60 * 60);
+  // We usually don't want to act every time cron runs (which could be every
+  // minute) so keep a time for the next run in a variable.
+  if (time() >= variable_get('stacksight_next_execution', 0)) {
+    // This is a silly example of a cron job.
+    // It just makes it obvious that the job has run without
+    // making any changes to your database.
+    watchdog('stacksight', 'stacksight ran by cron');
+    stacksight_updates_publish();
+    
+    if (!empty($GLOBALS['stacksight_show_status_message'])) {
+      drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
+    }
+    variable_set('stacksight_next_execution', time() + $interval);
+  }
