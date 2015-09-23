@@ -192,6 +192,17 @@ function stacksight_node_update($node) {
 		'name' => $node->title,
 		'url' => url('node/' . $node->nid, $url_options)
 	) + $event);
+
+	// if a user published a node to the front page
+	if ($node->promote) {
+		$res = $ss_client->publishEvent(array(
+			'action' => 'promoted',
+			'type' => 'content',
+			'subtype' => $node->type,
+			'name' => $node->title,
+			'url' => url('node/' . $node->nid, $url_options)
+		) + $event);
+	}
 }
 
 function stacksight_node_insert($node) {
@@ -213,6 +224,17 @@ function stacksight_node_insert($node) {
 		'name' => $node->title,
 		'url' => url('node/' . $node->nid, $url_options)
 	) + $event);
+
+	// if a user published a node to the front page
+	if ($node->promote) {
+		$res = $ss_client->publishEvent(array(
+			'action' => 'promoted',
+			'type' => 'content',
+			'subtype' => $node->type,
+			'name' => $node->title,
+			'url' => url('node/' . $node->nid, $url_options)
+		) + $event);
+	}
 }
 
 function stacksight_node_delete($node) {
