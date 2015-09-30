@@ -168,7 +168,7 @@ function stacksight_get_availible_updates() {
 
 function stacksight_node_update($node) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($node)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -201,7 +201,7 @@ function stacksight_node_update($node) {
 
 function stacksight_node_insert($node) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($node)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -233,7 +233,7 @@ function stacksight_node_insert($node) {
 
 function stacksight_node_delete($node) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($node)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -254,7 +254,7 @@ function stacksight_node_delete($node) {
 // user
 function stacksight_user_insert(&$edit, $account, $category) {
 	global $ss_client;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($account)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -269,7 +269,7 @@ function stacksight_user_insert(&$edit, $account, $category) {
 
 function stacksight_user_update(&$edit, $account, $category) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($account)) return;
 
 	$event = $changed = array();
 	$url_options = array('absolute' => true);
@@ -281,7 +281,7 @@ function stacksight_user_update(&$edit, $account, $category) {
 		);
 	}
 
-	if (isset($account->original)) {
+	if (!empty($account->original)) {
 		$origin = $account->original;
 		// name
 		if ($origin->name != $account->name) $changed[] = t('name (@str)', array('@str' => $account->name));
@@ -292,10 +292,7 @@ function stacksight_user_update(&$edit, $account, $category) {
 		// email
 		if ($origin->mail != $account->mail) $changed[] = t('email (@str)', array('@str' => $account->mail));
 		// active/blocked
-		if ($origin->status != $account->status) {
-			if ($account->status == 1) $changed[] = t('status (acvive)');
-			elseif ($account->status == 0) $changed[] = t('status (blocked)');
-		}
+		if ($origin->status != $account->status) $changed[] = $account->status ? t('status (acvive)') : t('status (blocked)');
 		// avatar uploaded
 		if (!empty($account->picture_upload)) $changed[] = t('avatar (new)');
 		// avatar deleted
@@ -313,7 +310,7 @@ function stacksight_user_update(&$edit, $account, $category) {
 
 function stacksight_user_delete($account) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($account)) return;
 	
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -333,7 +330,7 @@ function stacksight_user_delete($account) {
 
 function stacksight_user_login(&$edit, $account) {
 	global $ss_client;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($account)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -348,7 +345,7 @@ function stacksight_user_login(&$edit, $account) {
 
 function stacksight_user_logout($account) {
 	global $ss_client;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($account)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -364,10 +361,10 @@ function stacksight_user_logout($account) {
 // files
 function stacksight_file_presave($file) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($file)) return;
 
 	// required that condition cause this hook is called 3 times with different parameters
-	if (!isset($file->original) || !$file->status) return;
+	if (empty($file->original) || empty($file->status)) return;
 
 
 	$event = array();
@@ -379,7 +376,7 @@ function stacksight_file_presave($file) {
 		);
 	}
 	$file_ex = explode('/', $file->filemime);
-	if (isset($file_ex[0])) {
+	if (!empty($file_ex[0])) {
 		$event['subtype'] = $file_ex[0];
 	}
 	$event['url'] = file_create_url($file->uri);
@@ -400,7 +397,7 @@ function stacksight_file_presave($file) {
 
 function stacksight_file_delete($file) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($file)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -411,7 +408,7 @@ function stacksight_file_delete($file) {
 		);
 	}
 	$file_ex = explode('/', $file->filemime);
-	if (isset($file_ex[0])) {
+	if (!empty($file_ex[0])) {
 		$event['subtype'] = $file_ex[0];
 	}
 
@@ -432,7 +429,7 @@ function stacksight_file_delete($file) {
 // comments
 function stacksight_comment_delete($comment) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($comment)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -442,27 +439,23 @@ function stacksight_comment_delete($comment) {
 			'url' => url('user/'.$user->uid, $url_options)
 		);
 	}
-	if ($comment->subject) $event['name'] = $comment->subject;
+	if (!empty($comment->subject)) $event['name'] = $comment->subject;
 
 	$lang = $comment->language;
-	if (isset($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+	if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
 		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
-		if (!$event['name']) $event['name'] = mb_substr($event['data']['body'], 0, 16).'...';
+		if (empty($event['name'])) $event['name'] = mb_substr($event['data']['body'], 0, 16).'...';
 	}
 
 	$res = $ss_client->publishEvent(array(
 		'action' => 'deleted',
 		'type' => 'comment'
 	) + $event);
-
-	// $level = 'comments_hooks';
-	// SSUtilities::error_log('-------------comment is being deleted----------------', $level);
-	// SSUtilities::error_log($comment, $level);
 }
 
 function stacksight_comment_insert($comment) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($comment)) return;
 	if ($comment->status != COMMENT_NOT_PUBLISHED) return;
 
 
@@ -477,7 +470,7 @@ function stacksight_comment_insert($comment) {
 	if ($comment->subject) $event['name'] = $comment->subject;
 
 	$lang = $comment->language;
-	if (isset($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+	if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
 		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
 	}
 
@@ -490,7 +483,7 @@ function stacksight_comment_insert($comment) {
 
 function stacksight_comment_update($comment) {
 	global $ss_client, $user;
-	if (!$ss_client) return;
+	if (empty($ss_client) || empty($comment)) return;
 
 	$event = array();
 	$url_options = array('absolute' => true);
@@ -518,13 +511,10 @@ function stacksight_comment_update($comment) {
 	}
 }
 
-function stacksight_comment_publish($comment) {
-	$level = 'comments_hooks';
-	// SSUtilities::error_log('-------------comment is being published----------------', $level);
-	// SSUtilities::error_log($comment, $level);
-}
+function stacksight_updates_publish() {
+	global $ss_client;
+	if (empty($ss_client)) return;
 
-function stacksight_updates_publish(){
 	$updates = stacksight_get_availible_updates();
 	$upd = array();
 	foreach ($updates as $key => $uitem) {
@@ -543,10 +533,7 @@ function stacksight_updates_publish(){
 		);
 	}
 
-	// trigger_error('bb');
-
-	global $ss_client;
-	if ($ss_client) $ss_client->sendUpdates(array('data' => $upd));
+	$ss_client->sendUpdates(array('data' => $upd));
 }
 
 function array_diff_assoc_recursive($array1, $array2) {
