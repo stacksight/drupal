@@ -45,8 +45,7 @@ function stacksight_admin() {
 	}
 
 //update LK
-  stacksight_updates_publish();
-
+   stacksight_updates_publish();
 	return system_settings_form($form);
 }
 
@@ -567,7 +566,6 @@ function array_diff_assoc_recursive($array1, $array2) {
 
 /* update on cron run */
 function stacksight_cron(){
-} 
   watchdog('stacksight','stacksight invoked by cron');
 // Default to an hourly interval. Of course, cron has to be running at least
   // hourly for this to work.
@@ -586,3 +584,4 @@ function stacksight_cron(){
     }
     variable_set('stacksight_next_execution', time() + $interval);
   }
+}
