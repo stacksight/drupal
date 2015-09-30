@@ -166,11 +166,11 @@ function stacksight_get_availible_updates() {
 // Events //
 ////////////
 
-function stacksight_node_update($node) {
+function _stacksight_node_events($node, $action) {
 	global $ss_client, $user;
-	if (empty($ss_client) || empty($node)) return;
+	if (empty($ss_client) || empty($action) || empty($node)) return;
 
-	$event = array();
+	$event = $add_actions = array();
 	$url_options = array('absolute' => true);
 	if (user_is_logged_in()) {
 		$event['user'] = array(
@@ -180,75 +180,59 @@ function stacksight_node_update($node) {
 	}
 
 	$res = $ss_client->publishEvent(array(
-		'action' => 'updated',
+		'action' => $action,
 		'type' => 'content',
 		'subtype' => $node->type,
 		'name' => $node->title,
 		'url' => url('node/' . $node->nid, $url_options)
 	) + $event);
 
-	// if a user published a node to the front page
-	if ($node->promote) {
-		$res = $ss_client->publishEvent(array(
-			'action' => 'promoted',
+	if ($action == 'updated' && !empty($node->original)) {
+		// promoted
+		if ($node->original->promote == NODE_NOT_PROMOTED && $node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+		// unpromoted
+		if ($node->original->promote == NODE_PROMOTED && $node->promote == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
+
+		// published
+		if ($node->original->status == NODE_NOT_PUBLISHED && $node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+		// unpublished
+		if ($node->original->status == NODE_PUBLISHED && $node->status == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
+
+		// sticky
+		if ($node->original->sticky == NODE_NOT_STICKY && $node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+		// not sticky
+		if ($node->original->sticky == NODE_STICKY && $node->sticky == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+	}
+	// checking only "on" actions, cause opposite state did not exist
+	if ($action == 'created') {
+		// promoted
+		if ($node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+		// published
+		if ($node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+		// sticky
+		if ($node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+	}
+	if (!empty($add_actions)) {
+		$add_res = $ss_client->publishEvent(array(
+			'action' => implode(', ', $add_actions),
 			'type' => 'content',
 			'subtype' => $node->type,
 			'name' => $node->title,
 			'url' => url('node/' . $node->nid, $url_options)
 		) + $event);
 	}
+}
+
+function stacksight_node_update($node) {
+	_stacksight_node_events($node, 'updated');
 }
 
 function stacksight_node_insert($node) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($node)) return;
-
-	$event = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	$res = $ss_client->publishEvent(array(
-		'action' => 'created',
-		'type' => 'content',
-		'subtype' => $node->type,
-		'name' => $node->title,
-		'url' => url('node/' . $node->nid, $url_options)
-	) + $event);
-
-	// if a user published a node to the front page
-	if ($node->promote) {
-		$res = $ss_client->publishEvent(array(
-			'action' => 'promoted',
-			'type' => 'content',
-			'subtype' => $node->type,
-			'name' => $node->title,
-			'url' => url('node/' . $node->nid, $url_options)
-		) + $event);
-	}
+	_stacksight_node_events($node, 'created');
 }
 
 function stacksight_node_delete($node) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($node)) return;
-
-	$event = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	$res = $ss_client->publishEvent(array(
-		'action' => 'deleted',
-		'type' => 'content',
-		'subtype' => $node->type,
-		'name' => $node->title
-	) + $event);
+	_stacksight_node_events($node, 'deleted');
 }
 
 // user
