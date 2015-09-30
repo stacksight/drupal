@@ -153,20 +153,12 @@ function stacksight_get_diagnostic($app_id, $token) {
 }
 
 function stacksight_get_availible_updates() {
-  if (module_exists('update')){
-        //  module_load_include('inc', 'update', 'update.report.inc');
-          // in module_load_include docs states that require_once should be used instead  
-          require_once DRUPAL_ROOT . '/modules/update/update.module';
-          $available = update_get_available(TRUE);
-          $updates = update_calculate_project_data($available);
-          return $updates;
-  }else{
-    watchdog('stacksight','update module does not exist - not updating');
-  }
+  require_once DRUPAL_ROOT . '/modules/update/update.module';
+  require_once DRUPAL_ROOT . '/modules/update/update.compare.inc';
+  $available = update_get_available(TRUE);
+  $updates = update_calculate_project_data($available);
+  return $updates;
 }
-
-
-
 
 ////////////
 // Events //
