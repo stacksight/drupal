@@ -44,8 +44,6 @@ function stacksight_admin() {
 		);
 	}
 
-	trigger_error('drupal error to test watchdog php error level');
-
 	//update LK
 	stacksight_updates_publish();
 	return system_settings_form($form);
@@ -174,7 +172,7 @@ function stacksight_node_update($node) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -207,7 +205,7 @@ function stacksight_node_insert($node) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -239,7 +237,7 @@ function stacksight_node_delete($node) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -276,7 +274,7 @@ function stacksight_user_update(&$edit, $account, $category) {
 	$event = $changed = array();
 	$url_options = array('absolute' => true);
 	$event['url'] = url('user/'.$account->uid, $url_options);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -319,7 +317,7 @@ function stacksight_user_delete($account) {
 	
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -374,7 +372,7 @@ function stacksight_file_presave($file) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -406,7 +404,7 @@ function stacksight_file_delete($file) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -438,7 +436,7 @@ function stacksight_comment_delete($comment) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -470,7 +468,7 @@ function stacksight_comment_insert($comment) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
@@ -496,7 +494,7 @@ function stacksight_comment_update($comment) {
 
 	$event = array();
 	$url_options = array('absolute' => true);
-	if ($user->uid) {
+	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
 			'url' => url('user/'.$user->uid, $url_options)
