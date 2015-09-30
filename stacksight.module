@@ -44,8 +44,10 @@ function stacksight_admin() {
 		);
 	}
 
-//update LK
-   stacksight_updates_publish();
+	trigger_error('drupal error to test watchdog php error level');
+
+	//update LK
+	stacksight_updates_publish();
 	return system_settings_form($form);
 }
 
@@ -75,20 +77,22 @@ function stacksight_permission() {
 function stacksight_watchdog($log) {
 	global $ss_client;
 
-	if (!$ss_client) return;
-	// SSUtilities::error_log($log, 'error');
-
-	$res = array();
 	// exclude certain events
 	$exclude = array('content');
-	if (isset($log['variables'])) $message = strip_tags(t($log['message'], $log['variables']));
-	else $message = strip_tags(t($log['message']));
 
-	if ($log['type'] == 'php') {
-		$severity = stacksight_map_severity_level($log['severity']);
-		$res = $ss_client->sendLog($message, $severity);
-	} elseif (!in_array($log['type'], $exclude)) {
+	if (empty($ss_client) || empty($log) || empty($log['type']) || in_array($log['type'], $exclude)) return;
 
+	$res = array();
+	if (!empty($log['message'])) {
+		$message = empty($log['variables']) ? t($log['message']) : t($log['message'], $log['variables']);
+		$message = strip_tags($message);
+
+		if ($log['type'] == 'php') {
+			$severity = stacksight_map_severity_level($log['severity']);
+			$res = $ss_client->sendLog($message, $severity);
+		} else {
+			// process other types...
+		}
 	}
 
 	if ($res && !$res['success']) SSUtilities::error_log($res['message'], 'error');
