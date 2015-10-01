@@ -498,10 +498,6 @@ function stacksight_cron(){
   // We usually don't want to act every time cron runs (which could be every
   // minute) so keep a time for the next run in a variable.
   if (time() >= variable_get('stacksight_next_execution', 0)) {
-    // This is a silly example of a cron job.
-    // It just makes it obvious that the job has run without
-    // making any changes to your database.
-    watchdog('stacksight', 'stacksight ran by cron');
     stacksight_updates_publish();
     
     if (!empty($GLOBALS['stacksight_show_status_message'])) {
