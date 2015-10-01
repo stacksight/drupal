@@ -187,31 +187,37 @@ function _stacksight_node_events($node, $action) {
 		'url' => url('node/' . $node->nid, $url_options)
 	) + $event);
 
-	if ($action == 'updated' && !empty($node->original)) {
-		// promoted
-		if ($node->original->promote == NODE_NOT_PROMOTED && $node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
-		// unpromoted
-		if ($node->original->promote == NODE_PROMOTED && $node->promote == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
+	switch ($action) {
+		case 'updated':
+			if (!empty($node->original)) {
+				// promoted
+				if ($node->original->promote == NODE_NOT_PROMOTED && $node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+				// unpromoted
+				if ($node->original->promote == NODE_PROMOTED && $node->promote == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
 
-		// published
-		if ($node->original->status == NODE_NOT_PUBLISHED && $node->status == NODE_PUBLISHED) $add_actions[] = 'published';
-		// unpublished
-		if ($node->original->status == NODE_PUBLISHED && $node->status == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
+				// published
+				if ($node->original->status == NODE_NOT_PUBLISHED && $node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+				// unpublished
+				if ($node->original->status == NODE_PUBLISHED && $node->status == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
 
-		// sticky
-		if ($node->original->sticky == NODE_NOT_STICKY && $node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
-		// not sticky
-		if ($node->original->sticky == NODE_STICKY && $node->sticky == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+				// sticky
+				if ($node->original->sticky == NODE_NOT_STICKY && $node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+				// not sticky
+				if ($node->original->sticky == NODE_STICKY && $node->sticky == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+			}
+			break;
+		
+		case 'created':
+			// checking only "on" actions, cause opposite state did not exist
+			// promoted
+			if ($node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+			// published
+			if ($node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+			// sticky
+			if ($node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+			break;
 	}
-	// checking only "on" actions, cause opposite state did not exist
-	if ($action == 'created') {
-		// promoted
-		if ($node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
-		// published
-		if ($node->status == NODE_PUBLISHED) $add_actions[] = 'published';
-		// sticky
-		if ($node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
-	}
+
 	if (!empty($add_actions)) {
 		$add_res = $ss_client->publishEvent(array(
 			'action' => implode(', ', $add_actions),
@@ -236,28 +242,15 @@ function stacksight_node_delete($node) {
 }
 
 // user
-function stacksight_user_insert(&$edit, $account, $category) {
-	global $ss_client;
-	if (empty($ss_client) || empty($account)) return;
-
-	$event = array();
-	$url_options = array('absolute' => true);
-	$event['url'] = url('user/'.$account->uid, $url_options);
-
-	$res = $ss_client->publishEvent(array(
-		'action' => 'added',
-		'type' => 'user',
-		'name' => $account->name
-	) + $event);
-}
-
-function stacksight_user_update(&$edit, $account, $category) {
+function _stacksight_user_events($account, $action) {
 	global $ss_client, $user;
-	if (empty($ss_client) || empty($account)) return;
+	if (empty($ss_client) || empty($account) || empty($action)) return;
 
-	$event = $changed = array();
-	$url_options = array('absolute' => true);
-	$event['url'] = url('user/'.$account->uid, $url_options);
+	$event = $changed = array(); $event_name = '';
+	if (!empty($account->uid)) {
+		$url_options = array('absolute' => true);
+		$event['url'] = url('user/'.$account->uid, $url_options);
+	}
 	if (user_is_logged_in()) {
 		$event['user'] = array(
 			'name' => $user->name,
@@ -265,7 +258,10 @@ function stacksight_user_update(&$edit, $account, $category) {
 		);
 	}
 
-	if (!empty($account->original)) {
+	$event_name = $account->name;
+
+	if ($action == 'updated' && !empty($account->original)) {
+		$event_name = 'account';
 		$origin = $account->original;
 		// name
 		if ($origin->name != $account->name) $changed[] = t('name (@str)', array('@str' => $account->name));
@@ -280,66 +276,59 @@ function stacksight_user_update(&$edit, $account, $category) {
 		// avatar uploaded
 		if (!empty($account->picture_upload)) $changed[] = t('avatar (new)');
 		// avatar deleted
-		if ($account->picture_delete) $changed[] = t('avatar (removed)');
+		if (!empty($account->picture_delete)) $changed[] = t('avatar (removed)');
 	}
 
-	if (empty($changed)) $changed[] = 'account';
-
+	// general event
 	$res = $ss_client->publishEvent(array(
-		'action' => 'changed',
+		'action' => $action,
 		'type' => 'user',
-		'name' => implode(', ', $changed)
+		'name' => $event_name
 	) + $event);
+
+	// specific what changed (see case 'updated' for details)
+	if (!empty($changed)) {
+		$add_res = $ss_client->publishEvent(array(
+			'action' => 'changed',
+			'type' => 'user',
+			'name' => implode(', ', $changed)
+		) + $event);
+	}
+}
+
+function stacksight_user_insert(&$edit, $account, $category) {
+	_stacksight_user_events($account, 'added');
+}
+
+function stacksight_user_update(&$edit, $account, $category) {
+	_stacksight_user_events($account, 'updated');
 }
 
 function stacksight_user_delete($account) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($account)) return;
-	
+	_stacksight_user_events($account, 'deleted');
+}
+
+function _stacksight_user_log_events($account, $action) {
+	global $ss_client;
+	if (empty($ss_client) || empty($account) || empty($action)) return;
+
 	$event = array();
 	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
+	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
 
 	$res = $ss_client->publishEvent(array(
-		'action' => 'deleted',
+		'action' => $action,
 		'type' => 'user',
-		'name' => $account->name
+		'name' => '',
 	) + $event);
 }
 
 function stacksight_user_login(&$edit, $account) {
-	global $ss_client;
-	if (empty($ss_client) || empty($account)) return;
-
-	$event = array();
-	$url_options = array('absolute' => true);
-	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
-
-	$res = $ss_client->publishEvent(array(
-		'action' => 'logged in',
-		'type' => 'user',
-		'name' => '',
-	) + $event);
+	_stacksight_user_log_events($account, 'logged in');
 }
 
 function stacksight_user_logout($account) {
-	global $ss_client;
-	if (empty($ss_client) || empty($account)) return;
-
-	$event = array();
-	$url_options = array('absolute' => true);
-	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
-
-	$res = $ss_client->publishEvent(array(
-		'action' => 'logged out',
-		'type' => 'user',
-		'name' => '',
-	) + $event);
+	_stacksight_user_log_events($account, 'logged out');
 }
 
 // files
