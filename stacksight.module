@@ -447,7 +447,7 @@ function stacksight_comment_update($comment) {
 		);
 	}
 	// if comment changed
-	$com_changes = array_diff_assoc_recursive(
+	$com_changes = _stacksight_array_diff_assoc_recursive(
 		array('subject' => $comment->subject) + $comment->comment_body, 
 		array('subject' => $comment->original->subject) + $comment->original->comment_body
 	);
@@ -489,24 +489,6 @@ function stacksight_updates_publish() {
 	$ss_client->sendUpdates(array('data' => $upd));
 }
 
-function array_diff_assoc_recursive($array1, $array2) {
-    $difference=array();
-    foreach($array1 as $key => $value) {
-        if( is_array($value) ) {
-            if( !isset($array2[$key]) || !is_array($array2[$key]) ) {
-                $difference[$key] = $value;
-            } else {
-                $new_diff = array_diff_assoc_recursive($value, $array2[$key]);
-                if( !empty($new_diff) )
-                    $difference[$key] = $new_diff;
-            }
-        } else if( !array_key_exists($key,$array2) || $array2[$key] !== $value ) {
-            $difference[$key] = $value;
-        }
-    }
-    return $difference;
-}
-
 /* update on cron run */
 function stacksight_cron(){
   watchdog('stacksight','stacksight invoked by cron');
@@ -527,4 +509,22 @@ function stacksight_cron(){
     }
     variable_set('stacksight_next_execution', time() + $interval);
   }
+}
+
+function _stacksight_array_diff_assoc_recursive($array1, $array2) {
+    $difference=array();
+    foreach($array1 as $key => $value) {
+        if( is_array($value) ) {
+            if( !isset($array2[$key]) || !is_array($array2[$key]) ) {
+                $difference[$key] = $value;
+            } else {
+                $new_diff = _stacksight_array_diff_assoc_recursive($value, $array2[$key]);
+                if( !empty($new_diff) )
+                    $difference[$key] = $new_diff;
+            }
+        } else if( !array_key_exists($key,$array2) || $array2[$key] !== $value ) {
+            $difference[$key] = $value;
+        }
+    }
+    return $difference;
 }
