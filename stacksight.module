@@ -332,15 +332,18 @@ function stacksight_user_logout($account) {
 }
 
 // files
-function stacksight_file_presave($file) {
+function _stacksight_file_events($file, $action) {
 	global $ss_client, $user;
-	if (empty($ss_client) || empty($file)) return;
-
-	// required that condition cause this hook is called 3 times with different parameters
-	if (empty($file->original) || empty($file->status)) return;
-
-
 	$event = array();
+
+	if (empty($ss_client) || empty($file) || empty($action)) return;
+	if ($action == 'uploaded') {
+		// required that condition cause this hook is called 3 times with different parameters
+		if (empty($file->original) || empty($file->status)) return;
+
+		$event['url'] = file_create_url($file->uri);
+	}
+
 	$url_options = array('absolute' => true);
 	if (user_is_logged_in()) {
 		$event['user'] = array(
@@ -352,10 +355,9 @@ function stacksight_file_presave($file) {
 	if (!empty($file_ex[0])) {
 		$event['subtype'] = $file_ex[0];
 	}
-	$event['url'] = file_create_url($file->uri);
 
 	$res = $ss_client->publishEvent(array(
-		'action' => 'uploaded',
+		'action' => $action,
 		'type' => 'file',
 		'name' => $file->filename,
 		'id' => $file->fid,
@@ -363,39 +365,17 @@ function stacksight_file_presave($file) {
 			'file_name' => $file->filename,
 			'type' => $file->filemime,
 			'size' => $file->filesize,
-			'url' => $event['url'],
+			'url' => isset($event['url']) ? $event['url'] : '',
 		)
 	) + $event);
 }
 
+function stacksight_file_presave($file) {
+	_stacksight_file_events($file, 'uploaded');
+}
+
 function stacksight_file_delete($file) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($file)) return;
-
-	$event = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	$file_ex = explode('/', $file->filemime);
-	if (!empty($file_ex[0])) {
-		$event['subtype'] = $file_ex[0];
-	}
-
-	$res = $ss_client->publishEvent(array(
-		'action' => 'deleted',
-		'type' => 'file',
-		'name' => $file->filename,
-		'id' => $file->fid,
-		'data' => array(
-			'file_name' => $file->filename,
-			'type' => $file->filemime,
-			'size' => $file->filesize
-		)
-	) + $event);
+	_stacksight_file_events($file, 'deleted');
 }
 
 
