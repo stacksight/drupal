@@ -524,3 +524,12 @@ function _stacksight_array_diff_assoc_recursive($array1, $array2) {
     }
     return $difference;
 }
+
+function stacksight_backup_migrate_filters(){
+    return array(
+        'stacksight' => array(
+            'file' => drupal_get_path('module', 'stacksight') .'/includes/filters.backup.stacksight.inc',
+            'class' => 'stacksight_backup_migrate_filter'
+        )
+    );
+}
