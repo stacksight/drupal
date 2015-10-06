@@ -538,7 +538,10 @@ function stacksight_backup_call(){
 	foreach($backup_list as $backup){
 		if(is_array($backup)){
             foreach($backup as $key => $backup_info){
-                $calendar[] = date('Y-m-d', $backup_info->file_info['filetime']);
+                $calendar[date('Y-m-d', $backup_info->file_info['filetime'])] = [
+                   'date' => date('Y-m-d', $backup_info->file_info['filetime']),
+                   'backup_size' => (isset($backups[date('Y-m-d', $backup_info->file_info['filetime'])])) ? sizeof($backups[date('Y-m-d', $backup_info->file_info['filetime'])]) : 0
+                ];
                 $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = [
                     'timestamp' => $backup_info->file_info['filetime'],
                     'file' => $backup_info->file_info['filename'],
@@ -556,7 +559,7 @@ function stacksight_backup_call(){
 	  	'desc' => "Calendar description",
         'group' => 1,
         'order' => 1,
-		'data' => array_unique($calendar)
+		'data' => $calendar
 	];
 
     $widgets[] = [
