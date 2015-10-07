@@ -499,7 +499,8 @@ function stacksight_cron(){
   // minute) so keep a time for the next run in a variable.
   if (time() >= variable_get('stacksight_next_execution', 0)) {
     stacksight_updates_publish();
-    
+    stacksight_backup_call();
+
     if (!empty($GLOBALS['stacksight_show_status_message'])) {
       drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
     }
@@ -525,11 +526,57 @@ function _stacksight_array_diff_assoc_recursive($array1, $array2) {
     return $difference;
 }
 
-function stacksight_backup_migrate_filters(){
-    return array(
-        'stacksight' => array(
-            'file' => drupal_get_path('module', 'stacksight') .'/includes/filters.backup.stacksight.inc',
-            'class' => 'stacksight_backup_migrate_filter'
-        )
-    );
+function stacksight_backup_call(){
+	global $ss_client;
+	$backup_list = backup_migrate_get_saved_backups();
+	if (empty($ss_client) || empty($backup_list)) return;
+
+	$backups = [];
+	$calendar = [];
+    $widgets = [];
+
+	foreach($backup_list as $backup){
+		if(is_array($backup)){
+            foreach($backup as $key => $backup_info){
+                $calendar[date('Y-m-d', $backup_info->file_info['filetime'])] = [
+                   'date' => date('Y-m-d', $backup_info->file_info['filetime']),
+                   'backup_size' => (isset($backups[date('Y-m-d', $backup_info->file_info['filetime'])])) ? sizeof($backups[date('Y-m-d', $backup_info->file_info['filetime'])]) : 0
+                ];
+                $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = [
+                    'timestamp' => $backup_info->file_info['filetime'],
+                    'file' => $backup_info->file_info['filename'],
+                    'dest' => $backup_info->file_info['destination_id'],
+                    'source' => $backup_info->file_info['bam_sourcename'],
+                    'size' => $backup_info->file_info['filesize']
+                ];
+            }
+        }
+    }
+
+    $widgets[] = [
+		'type' => "backup_calendar",
+	  	'title' => "Calendar",
+	  	'desc' => "Calendar description",
+        'group' => 1,
+        'order' => 1,
+		'data' => $calendar
+	];
+
+    $widgets[] = [
+		'type' => "backup_list",
+	  	'title' => "Your backups",
+	  	'desc' => "For information, updates and documentation, please visit the AIO WP Security & Firewall Plugin Page",
+        'group' => 1,
+        'order' => 2,
+		'data' => $backups
+	];
+
+	$object = [
+		'category' => 'backups',
+        'title' => 'Great Backups Plugin',
+        'desc' => 'Great Backups Plugin description',
+        'widgets' => $widgets
+	];
+
+	$res = $ss_client->sendHealth($object);
 }
