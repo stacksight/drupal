@@ -529,41 +529,33 @@ function _stacksight_array_diff_assoc_recursive($array1, $array2) {
 function stacksight_backup_call(){
 	global $ss_client;
 	$backup_list = backup_migrate_get_saved_backups();
+
 	if (empty($ss_client) || empty($backup_list)) return;
 
 	$backups = [];
-	$calendar = [];
     $widgets = [];
-
 	foreach($backup_list as $backup){
 		if(is_array($backup)){
             foreach($backup as $key => $backup_info){
-                $calendar[date('Y-m-d', $backup_info->file_info['filetime'])] = [
-                   'date' => date('Y-m-d', $backup_info->file_info['filetime']),
-                   'backup_size' => (isset($backups[date('Y-m-d', $backup_info->file_info['filetime'])])) ? sizeof($backups[date('Y-m-d', $backup_info->file_info['filetime'])]) : 0
-                ];
+                $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
                 $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = [
                     'timestamp' => $backup_info->file_info['filetime'],
                     'file' => $backup_info->file_info['filename'],
                     'dest' => $backup_info->file_info['destination_id'],
                     'source' => $backup_info->file_info['bam_sourcename'],
-                    'size' => $backup_info->file_info['filesize']
+                    'size' => $backup_info->file_info['filesize'],
+                    'links' => [
+                        'download' => url('/admin/config/system/backup_migrate/settings/destination/downloadfile/'.$url_destination, array('absolute' => TRUE)),
+                        'restore'  => url('/admin/config/system/backup_migrate/settings/destination/list/restorefile/'.$url_destination, array('absolute' => TRUE)),
+                        'delete'   => url('/admin/config/system/backup_migrate/settings/destination/list/deletefile/'.$url_destination, array('absolute' => TRUE))
+                    ]
                 ];
             }
         }
     }
-
+    
     $widgets[] = [
-		'type' => "backup_calendar",
-	  	'title' => "Calendar",
-	  	'desc' => "Calendar description",
-        'group' => 1,
-        'order' => 1,
-		'data' => $calendar
-	];
-
-    $widgets[] = [
-		'type' => "backup_list",
+		'type' => "backup",
 	  	'title' => "Your backups",
 	  	'desc' => "For information, updates and documentation, please visit the AIO WP Security & Firewall Plugin Page",
         'group' => 1,
