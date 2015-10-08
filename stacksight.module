@@ -531,13 +531,14 @@ function stacksight_backup_call(){
 	$backup_list = backup_migrate_get_saved_backups();
 
 	if (empty($ss_client) || empty($backup_list)) return;
-
+	$result = [];
 	$backups = [];
     $widgets = [];
 	foreach($backup_list as $backup){
 		if(is_array($backup)){
             foreach($backup as $key => $backup_info){
-                $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
+                if(isset($backup_info->file_info['file_id']))
+                    $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
                 $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = [
                     'timestamp' => $backup_info->file_info['filetime'],
                     'file' => $backup_info->file_info['filename'],
@@ -553,7 +554,7 @@ function stacksight_backup_call(){
             }
         }
     }
-    
+
     $widgets[] = [
 		'type' => "backup",
 	  	'title' => "Your backups",
@@ -570,5 +571,7 @@ function stacksight_backup_call(){
         'widgets' => $widgets
 	];
 
-	$res = $ss_client->sendHealth($object);
+	$result['data'][] = $object;
+
+	$res = $ss_client->sendHealth($result);
 }
