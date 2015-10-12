@@ -494,13 +494,12 @@ function stacksight_cron(){
   watchdog('stacksight','stacksight invoked by cron');
 // Default to an hourly interval. Of course, cron has to be running at least
   // hourly for this to work.
+  stacksight_backup_call();
   $interval = variable_get('stacksight_interval', 60 * 60);
   // We usually don't want to act every time cron runs (which could be every
   // minute) so keep a time for the next run in a variable.
   if (time() >= variable_get('stacksight_next_execution', 0)) {
     stacksight_updates_publish();
-    stacksight_backup_call();
-
     if (!empty($GLOBALS['stacksight_show_status_message'])) {
       drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
     }
