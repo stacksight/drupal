@@ -532,45 +532,45 @@ function stacksight_backup_call(){
 	$backup_list = backup_migrate_get_saved_backups();
 
 	if (empty($ss_client) || empty($backup_list)) return;
-	$result = [];
-	$backups = [];
-    $widgets = [];
+	$result = array();
+	$backups = array();
+    $widgets = array();
 	foreach($backup_list as $backup){
 		if(is_array($backup)){
             foreach($backup as $key => $backup_info){
                 if(isset($backup_info->file_info['file_id']))
                     $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
-                $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = [
+                $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = array(
                     'timestamp' => $backup_info->file_info['filetime'],
                     'file' => $backup_info->file_info['filename'],
                     'dest' => $backup_info->file_info['destination_id'],
                     'source' => $backup_info->file_info['bam_sourcename'],
                     'size' => $backup_info->file_info['filesize'],
-                    'links' => [
+                    'links' => array(
                         'download' => url('/admin/config/system/backup_migrate/settings/destination/downloadfile/'.$url_destination, array('absolute' => TRUE)),
                         'restore'  => url('/admin/config/system/backup_migrate/settings/destination/list/restorefile/'.$url_destination, array('absolute' => TRUE)),
                         'delete'   => url('/admin/config/system/backup_migrate/settings/destination/list/deletefile/'.$url_destination, array('absolute' => TRUE))
-                    ]
-                ];
+					)
+				);
             }
         }
     }
 
-    $widgets[] = [
+    $widgets[] = array(
 		'type' => "backup",
 	  	'title' => "Your backups",
 	  	'desc' => "For information, updates and documentation, please visit the AIO WP Security & Firewall Plugin Page",
         'group' => 1,
         'order' => 2,
 		'data' => $backups
-	];
+	);
 
-	$object = [
+	$object = array(
 		'category' => 'backups',
-        'title' => 'Great Backups Plugin',
-        'desc' => 'Great Backups Plugin description',
+        'title' => 'BackupSight',
+        'desc' => 'what is secureSight and why it\'s important to you!',
         'widgets' => $widgets
-	];
+	);
 
 	$result['data'][] = $object;
 
