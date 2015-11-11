@@ -8,7 +8,6 @@ require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
-
 	$form = array();
 
 	$form['stacksight_app_id'] = array(
@@ -157,6 +156,7 @@ function stacksight_get_diagnostic($app_id, $token) {
 function stacksight_get_availible_updates() {
   require_once DRUPAL_ROOT . '/modules/update/update.module';
   require_once DRUPAL_ROOT . '/modules/update/update.compare.inc';
+  update_refresh();
   $available = update_get_available(TRUE);
   $updates = update_calculate_project_data($available);
   return $updates;
