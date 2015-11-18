@@ -7,6 +7,7 @@ require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
 require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
+
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
 	$form = array();
 
@@ -491,22 +492,37 @@ function stacksight_updates_publish() {
 
 /* update on cron run */
 function stacksight_cron(){
-  watchdog('stacksight','stacksight invoked by cron');
-// Default to an hourly interval. Of course, cron has to be running at least
-  // hourly for this to work.
-  if(module_exists('backup_migrate')){
-	stacksight_backup_call();
-  }
-  $interval = variable_get('stacksight_interval', 60 * 60);
-  // We usually don't want to act every time cron runs (which could be every
-  // minute) so keep a time for the next run in a variable.
-  if (time() >= variable_get('stacksight_next_execution', 0)) {
-    stacksight_updates_publish();
-    if (!empty($GLOBALS['stacksight_show_status_message'])) {
-      drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
-    }
-    variable_set('stacksight_next_execution', time() + $interval);
-  }
+	global $ss_client;
+
+  	watchdog('stacksight','stacksight invoked by cron');
+	// Default to an hourly interval. Of course, cron has to be running at least
+  	// hourly for this to work.
+  	$result = array();
+	if(module_exists('backup_migrate')){
+		$backup_migrate = stacksight_backup_call($result);
+		if(!empty($backup_migrate))
+			$result['data'][] = $backup_migrate;
+  	}
+  	if(module_exists('yoast_seo')){
+		$yoast_seo = stacksight_seo_call($result);
+		if(!empty($yoast_seo))
+			$result['data'][] = $yoast_seo;
+  	}
+
+	if(!empty($result)){
+		$ss_client->sendHealth($result);
+	}
+
+  	$interval = variable_get('stacksight_interval', 60 * 60);
+  	// We usually don't want to act every time cron runs (which could be every
+  	// minute) so keep a time for the next run in a variable.
+  	if (time() >= variable_get('stacksight_next_execution', 0)) {
+    	stacksight_updates_publish();
+    	if (!empty($GLOBALS['stacksight_show_status_message'])) {
+      	drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
+    	}
+    	variable_set('stacksight_next_execution', time() + $interval);
+  	}
 }
 
 function _stacksight_array_diff_assoc_recursive($array1, $array2) {
@@ -527,12 +543,11 @@ function _stacksight_array_diff_assoc_recursive($array1, $array2) {
     return $difference;
 }
 
-function stacksight_backup_call(){
+function stacksight_backup_call($result){
 	global $ss_client;
 	$backup_list = backup_migrate_get_saved_backups();
 
 	if (empty($ss_client) || empty($backup_list)) return;
-	$result = array();
 	$backups = array();
     $widgets = array();
 	foreach($backup_list as $backup){
@@ -572,7 +587,149 @@ function stacksight_backup_call(){
         'widgets' => $widgets
 	);
 
-	$result['data'][] = $object;
+	if($backups){
+		return $object;
+	} else return false;
+}
 
-	$res = $ss_client->sendHealth($result);
+function stacksight_seo_call(){
+	$query = db_select('node', 'p');
+	$query->leftJoin('yoast_seo', 'pm', 'pm.entity_id = p.nid');
+	$query->fields('p', array('nid', 'title'))
+		->fields('pm', array('seo_status'))
+		->condition('p.status', 1, '=')
+		->condition('p.type', 'article', '=');
+	$posts = $query->execute();
+
+	$results_post = array();
+	$results_post['good'] = array();
+	$results_post['ok'] = array();
+	$results_post['poor'] = array();
+	$results_post['bad'] = array();
+	$results_post['no_focus'] = array();
+
+	$count_posts = 0;
+	$total_score = 0;
+	while ($record = $posts->fetchObject()) {
+		switch ($record->seo_status) {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+				$post = _stacksight_seo_add_element($record);
+				$results_post['bad'][] = $post;
+				$total_score += $total_score + $post['points'];
+				break;
+
+			case '4':
+			case '5':
+				$post = _stacksight_seo_add_element($record);
+				$results_post['poor'][] = $post;
+				$total_score += $total_score + $post['points'];
+				break;
+
+			case '6':
+			case '7':
+				$post = _stacksight_seo_add_element($record);
+				$results_post['ok'][] = $post;
+				$total_score += $total_score + $post['points'];
+				break;
+
+			case '8':
+			case '9':
+			case '10':
+				$post = _stacksight_seo_add_element($record);
+				$results_post['good'][] = $post;
+				$total_score += $total_score + $post['points'];
+				break;
+
+			default:
+				$post = _stacksight_seo_add_element($record);
+				$results_post['no_focus'][] = $post;
+				$total_score += $total_score + $post['points'];
+				break;
+		}
+
+		$count_posts++;
+
+	}
+
+	$data = array(
+		'category' => 'seo',
+		'title' => 'SEO',
+		'desc' => 'This panel shows your SEO (according to the Yoast SEO plugin)',
+	);
+
+	$general_seo = array();;
+	$general_seo['detail'] = $results_post;
+	$general_seo['graphic'] = _stacksight_seo_call_graphic($results_post, $count_posts);
+	$general_seo['performance'] = _stacksight_seo_call_performance($count_posts, $total_score);
+	$returned = false;
+
+	if(!empty($general_seo['performance'])){
+		$data['widgets'][] = array(
+			'type' => 'seo_meter',
+			'title' => 'General SEO performance',
+			'desc' => 'This is general performance information', // Optional
+			'order' => 1,       // specifies the block sequence (the place in DOM). Optinal
+			'group' => 1,       // specifies the group where the widget will be rendered.
+			'seo_meter' => $general_seo['performance']
+		);
+		$returned = true;
+	}
+
+	if(!empty($general_seo['graphic'])){
+		$data['widgets'][] = array(
+			'type' => 'seo_chart',
+			'title' => 'SEO graphic data',
+			'desc' => 'This is general graphic information about posts', // Optional
+			'order' => 2,       // specifies the block sequence (the place in DOM). Optinal
+			'group' => 1,       // specifies the group where the widget will be rendered.
+			'seo_chart' => $general_seo['graphic']
+		);
+		$returned = true;
+	}
+
+	if(!empty($general_seo['detail'])){
+		$data['widgets'][] = array(
+			'type' => 'seo_detail',
+			'title' => 'SEO detail data',
+			'desc' => 'This is detail information about posts', // Optional
+			'order' => 3,       // specifies the block sequence (the place in DOM). Optinal
+			'group' => 1,       // specifies the group where the widget will be rendered.
+			'seo_detail' => $general_seo['detail']
+		);
+		$returned = true;
+	}
+	if ($returned === true){
+		return $data;
+	} else return false;
+}
+
+function _stacksight_seo_call_graphic($data, $post_size){
+	$result = array();
+	foreach($data as $key => $item){
+		if(!isset($result[$key]))
+			$result[$key] = array();
+		$result[$key]['count'] = sizeof($item);
+		$result[$key]['percent'] = ($result[$key]['count'] / $post_size) * 100;
+	}
+	return $result;
+}
+
+function _stacksight_seo_call_performance($count_posts, $total_score){
+	$result = array();
+	$result['max_score'] = $count_posts * 100;
+	$result['total_score'] = $total_score;
+	$result['performance_percent'] = ($result['max_score'] !== 0) ? ($result['total_score'] / $result['max_score']) * 100 : 0;
+	return $result;
+}
+
+function _stacksight_seo_add_element($object){
+	$result = array();
+	$result['id'] = $object->nid;
+	$result['title'] = (isset($object->title) && !empty($object->title)) ? $object->title : 'No title';
+	$result['link'] = url(drupal_get_path_alias('/node/'.$object->nid), array('absolute'=>TRUE));
+	$result['points'] = (isset($object->seo_status)) ? $object->seo_status * 10 : 0;
+	return $result;
 }
