@@ -7,7 +7,6 @@ require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
 require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
-
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
 	$form = array();
 
@@ -557,8 +556,8 @@ function stacksight_backup_call($result){
                     $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
                 $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = array(
                     'timestamp' => $backup_info->file_info['filetime'],
-                    'file' => $backup_info->file_info['filename'],
-                    'dest' => $backup_info->file_info['destination_id'],
+                    'file' => array($backup_info->file_info['filename']),
+                    'dest' => array($backup_info->file_info['destination_id']),
                     'source' => $backup_info->file_info['bam_sourcename'],
                     'size' => $backup_info->file_info['filesize'],
                     'links' => array(
