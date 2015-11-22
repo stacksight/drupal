@@ -9,36 +9,28 @@ require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 function stacksight_admin() {
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
 	$form = array();
-
+  
 	$form['stacksight_app_id'] = array(
-		'#type' => 'textfield',
+		'#type' => 'fieldset',
 		'#title' => t('Stack ID'),
-		'#default_value' => variable_get('stacksight_app_id', ''),
-		'#size' => 24,
-		'#maxlength' => 24,
-		'#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
-		'#required' => TRUE,
+		'#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">'.t("Not set").'</span>'
 	);
 
 	$form['stacksight_token'] = array(
-		'#type' => 'textfield',
+		'#type' => 'fieldset',
 		'#title' => t('Access Token'),
-		'#default_value' => variable_get('stacksight_token', ''),
-		'#size' => 68,
-		'#maxlength' => 68,
-		'#description' => t("An access token as created at <a href='https://apps.stacksight.io'>stacksight.io</a>"),
-		'#required' => TRUE,
+		'#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
 	);
 
-	$app_id = variable_get('stacksight_app_id');
-	$token = variable_get('stacksight_token');
+	$app_id = defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : t('YOUR_STACKSIGHT_APP_ID');
+	$token = defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : t('YOUR_STACKSIGHT_TOKEN');
 	if ($app_id && $token) {
 		$form['code'] = array(
 			'#markup' => theme('code_config', array('data' => array(
-				'_id' => $app_id, 
-				'token' => $token, 
+				'_id' => $app_id,
+				'token' => $token,
 				'module_path' => drupal_get_path('module', 'stacksight'),
-				'diagnostic' => stacksight_get_diagnostic($app_id, $token)
+				'diagnostic' => stacksight_get_diagnostic()
 			)))
 		);
 	}
@@ -131,19 +123,15 @@ function stacksight_theme() {
 	);
 }
 
-function stacksight_get_diagnostic($app_id, $token) {
+function stacksight_get_diagnostic() {
     $list = array();
 
     if (!defined('STACKSIGHT_APP_ID')) {
         $list[] = t("App Id is not defined");
-    } elseif (STACKSIGHT_APP_ID != $app_id) {
-        $list[] = t("App Ids do not match");
     }
 
     if (!defined('STACKSIGHT_TOKEN')) {
         $list[] = t("Token is not defined<br>");
-    } elseif(STACKSIGHT_TOKEN != $token) {
-        $list[] = t("Tokens do not match<br>"); 
     }
 
     if (!defined('STACKSIGHT_BOOTSTRAPED')) {
