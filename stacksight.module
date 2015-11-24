@@ -542,6 +542,7 @@ function stacksight_backup_call($result){
             foreach($backup as $key => $backup_info){
                 if(isset($backup_info->file_info['file_id']))
                     $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
+
                 $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = array(
                     'timestamp' => $backup_info->file_info['filetime'],
                     'file' => array($backup_info->file_info['filename']),
@@ -549,9 +550,9 @@ function stacksight_backup_call($result){
                     'source' => $backup_info->file_info['bam_sourcename'],
                     'size' => $backup_info->file_info['filesize'],
                     'links' => array(
-                        'download' => url('/admin/config/system/backup_migrate/settings/destination/downloadfile/'.$url_destination, array('absolute' => TRUE)),
-                        'restore'  => url('/admin/config/system/backup_migrate/settings/destination/list/restorefile/'.$url_destination, array('absolute' => TRUE)),
-                        'delete'   => url('/admin/config/system/backup_migrate/settings/destination/list/deletefile/'.$url_destination, array('absolute' => TRUE))
+                        'download' => (isset($url_destination) && $url_destination) ? url('/admin/config/system/backup_migrate/settings/destination/downloadfile/'.$url_destination, array('absolute' => TRUE)) : null,
+                        'restore'  => (isset($url_destination) && $url_destination) ? url('/admin/config/system/backup_migrate/settings/destination/list/restorefile/'.$url_destination, array('absolute' => TRUE)) : null,
+                        'delete'   => (isset($url_destination) && $url_destination) ? url('/admin/config/system/backup_migrate/settings/destination/list/deletefile/'.$url_destination, array('absolute' => TRUE)) : null
 					)
 				);
             }
