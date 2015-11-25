@@ -491,10 +491,17 @@ function stacksight_cron(){
 			$result['data'][] = $backup_migrate;
   	}
   	if(module_exists('yoast_seo')){
-		$yoast_seo = stacksight_seo_call($result);
+		$yoast_seo = stacksight_seo_call();
 		if(!empty($yoast_seo))
 			$result['data'][] = $yoast_seo;
   	}
+
+	if(module_exists('security_review')){
+		module_load_include('inc', 'security_review', 'security_review.help');
+		$security_review = stacksight_security_call();
+		if(!empty($security_review))
+			$result['data'][] = $security_review;
+	}
 
 	if(!empty($result)){
 		$ss_client->sendHealth($result);
@@ -542,6 +549,7 @@ function stacksight_backup_call($result){
             foreach($backup as $key => $backup_info){
                 if(isset($backup_info->file_info['file_id']))
                     $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
+
                 $backups[date('Y-m-d', $backup_info->file_info['filetime'])][] = array(
                     'timestamp' => $backup_info->file_info['filetime'],
                     'file' => array($backup_info->file_info['filename']),
@@ -549,9 +557,9 @@ function stacksight_backup_call($result){
                     'source' => $backup_info->file_info['bam_sourcename'],
                     'size' => $backup_info->file_info['filesize'],
                     'links' => array(
-                        'download' => url('/admin/config/system/backup_migrate/settings/destination/downloadfile/'.$url_destination, array('absolute' => TRUE)),
-                        'restore'  => url('/admin/config/system/backup_migrate/settings/destination/list/restorefile/'.$url_destination, array('absolute' => TRUE)),
-                        'delete'   => url('/admin/config/system/backup_migrate/settings/destination/list/deletefile/'.$url_destination, array('absolute' => TRUE))
+                        'download' => (isset($url_destination) && $url_destination) ? url('/admin/config/system/backup_migrate/settings/destination/downloadfile/'.$url_destination, array('absolute' => TRUE)) : null,
+                        'restore'  => (isset($url_destination) && $url_destination) ? url('/admin/config/system/backup_migrate/settings/destination/list/restorefile/'.$url_destination, array('absolute' => TRUE)) : null,
+                        'delete'   => (isset($url_destination) && $url_destination) ? url('/admin/config/system/backup_migrate/settings/destination/list/deletefile/'.$url_destination, array('absolute' => TRUE)) : null
 					)
 				);
             }
@@ -577,6 +585,184 @@ function stacksight_backup_call($result){
 	if($backups){
 		return $object;
 	} else return false;
+}
+
+function stacksight_security_call(){
+	$last_result = security_review_get_stored_results();
+	if($last_result && is_array($last_result) && !empty($last_result)){
+		$points = array();
+		$points['file_perms'] = array(
+			'points' => 50,
+			'critical' => true,
+			'desc' => security_review_check_file_perms_help()
+		);
+		$points['input_formats'] = array(
+			'points' => 30,
+			'critical' => true,
+			'desc' => security_review_check_input_formats_help()
+		);
+		$points['field'] = array(
+			'points' => 15,
+			'critical' => false,
+			'desc' => security_review_check_field_help()
+		);
+		$points['error_reporting'] = array(
+			'points' => 10,
+			'critical' => false,
+			'desc' => security_review_check_error_reporting_help()
+		);
+		$points['private_files'] = array(
+			'points' => 15,
+			'critical' => false,
+			'desc' => security_review_check_private_files_help()
+		);
+		$points['query_errors'] = array(
+			'points' => 30,
+			'critical' => true,
+			'desc' => security_review_check_query_errors_help()
+		);
+		$points['failed_logins'] = array(
+			'points' => 20,
+			'critical' => false,
+			'desc' => security_review_check_failed_logins_help()
+		);
+		$points['upload_extensions'] = array(
+			'points' => 35,
+			'critical' => true,
+			'desc' => security_review_check_upload_extensions_help()
+		);
+		$points['admin_permissions'] = array(
+			'points' => 30,
+			'critical' => false,
+			'desc' => security_review_check_admin_permissions_help()
+		);
+		$points['untrusted_php'] = array(
+			'points' => 30,
+			'critical' => true,
+			'desc' => null
+		);
+		$points['executable_php'] = array(
+			'points' => 25,
+			'critical' => false,
+			'desc' => security_review_check_executable_php_help()
+		);
+		$points['base_url_set'] = array(
+			'points' => 20,
+			'critical' => false,
+			'desc' => security_review_check_base_url_help()
+		);
+		$points['temporary_files'] = array(
+			'points' => 15,
+			'critical' => false,
+			'desc' => security_review_check_temporary_files_help()
+		);
+
+		$max_points = 0;
+		$cur_points = 0;
+		$results = array();
+		$critical = array();
+
+		$list = array();
+		$list['completed']['title'] = t('Completed Tasks');
+		$list['completed']['points'] = 0;
+		$list['pending']['title'] = t('Pending Tasks');
+		$list['pending']['points'] = 0;
+
+
+		foreach($last_result as $i => $result){
+			if(isset($result['reviewcheck']) && !empty($result['reviewcheck']) && isset($points[$result['reviewcheck']])){
+				$max_points += $points[$result['reviewcheck']]['points'];
+				if($result['result'])
+					$cur_points += $points[$result['reviewcheck']]['points'];
+				$results[] = $points[$result['reviewcheck']];
+
+				if($points[$result['reviewcheck']]['critical'] == true){
+					$critical[] = array(
+						'name' => $points[$result['reviewcheck']]['desc']['title'],
+						'status' => 0,
+						'link' => url('admin/reports/security-review/help/security_review/admin_permissions', array('absolute' => TRUE))
+					);
+				}
+
+				if($result['result'] == true){
+					$list['completed']['points'] += $points[$result['reviewcheck']]['points'];
+					$list['completed']['data'][] = array(
+						'id' => $i,
+						'title' => $points[$result['reviewcheck']]['desc']['title'],
+						'desc' => implode(' ', $points[$result['reviewcheck']]['desc']['descriptions']),
+						'points' => $points[$result['reviewcheck']]['points'],
+						'security_level' => 0,
+						'link' => url('admin/reports/security-review/help/security_review/admin_permissions', array('absolute' => TRUE)),
+						'status' => 1
+					);
+				} else {
+					$list['pending']['points'] += $points[$result['reviewcheck']]['points'];
+					$list['pending']['data'][] = array(
+						'id' => $i,
+						'title' => $points[$result['reviewcheck']]['desc']['title'],
+						'desc' => implode(' ', $points[$result['reviewcheck']]['desc']['descriptions']),
+						'points' => $points[$result['reviewcheck']]['points'],
+						'security_level' => 0,
+						'link' => url('admin/reports/security-review/help/security_review/admin_permissions', array('absolute' => TRUE)),
+						'status' => 0
+					);
+				}
+			}
+		}
+
+		$sending = false;
+		$data = array(
+			'category' => 'security',
+			'title' => t('Security summary'),
+			'desc' => t('This panel shows the summary how your site is secure (according to the Security review module)'),
+			'plugin_url' => url('admin/reports/security-review',  array('absolute' => TRUE))
+		);
+
+		if (!empty($last_result)) {
+			$data['widgets'][] = array(
+				'type' => 'meter',
+				'title' => t('Security Strength Meter'),
+				'desc' => t('This meter shows in points the security level of your site'), // Optional
+				'order' => 1,       // specifies the block sequence (the place in DOM). Optinal
+				'group' => 1,       // specifies the group where the widget will be rendered.
+				// lets sey for meter widget where will be 2 checklists but they should be display in once parent DOM container. Optinal
+				'point_max' => $max_points, // max available points to gain
+				'point_cur' => $cur_points  // current amount of the points
+			);
+			$sending = true;
+		}
+
+		if (!empty($critical)) {
+			$data['widgets'][] = array(
+				'type' => 'checklist',
+				'title' => t('Critical Features Status'),
+				'desc' => t('Below is the current status of the critical features that you should activate on your site to achieve a minimum level of recommended security'),
+				'order' => 2,       // specifies the block sequence (the place in DOM). Optinal
+				'group' => 1,       // specifies the group where the widget will be rendered.
+				// lets sey for meter widget where will be 2 checklists but they should be display in once parent DOM container. Optinal
+				'checklist' => $critical
+			);
+			$sending = true;
+		}
+
+		if(!empty($list)){
+			$data['widgets'][] = array(
+				'type' => 'pointslist',
+				'title' => t('Secure points tasks'),
+				'desc' => t('Secure points tasks desc'),
+				'order' => 3,       // specifies the block sequence (the place in DOM). Optinal
+				'group' => 1,       // specifies the group where the widget will be rendered.
+				// lets sey for meter widget where will be 2 checklists but they should be display in once parent DOM container. Optinal
+				'pointslist' => $list
+			);
+			$sending = true;
+		}
+
+		if($sending === true){
+			return $data;
+		} else return false;
+	}
+	return false;
 }
 
 function stacksight_seo_call(){
