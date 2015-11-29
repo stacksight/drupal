@@ -15,7 +15,6 @@
 <p><?php echo t("Insert this configuration code (start-end block) at the end of your settings.php") ?>:</p>
 <pre class="code-ss-inlcude">
 <span class="code-comments">// StackSight start config</span>
-<span class="code-red">define</span>(<span class="code-yellow">'STACKSIGHT_APP_ID'</span>, '<span class="pre-code-red"><?php echo $data['_id'] ?></span>');
 <span class="code-red">define</span>(<span class="code-yellow">'STACKSIGHT_TOKEN'</span>, '<span class="pre-code-red"><?php echo $data['token'] ?></span>');
 <span class="code-red">require_once</span>(<span class="code-blue">DRUPAL_ROOT</span> . <span class="pre-code-red">'/<?php echo $data['module_path']; ?>'</span> . <span class="code-yellow">'/stacksight-php-sdk/bootstrap-drupal.php'</span>);
 <span class="code-comments">// StackSight end config</span>
