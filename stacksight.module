@@ -10,6 +10,14 @@ function stacksight_admin() {
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
 	$form = array();
 
+	if(defined('STACKSIGHT_APP_ID')){
+		$form['stacksight_app_id'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Stack ID'),
+			'#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">'.t("Not set").'</span>'
+		);
+	}
+
 	$form['stacksight_token'] = array(
 		'#type' => 'fieldset',
 		'#title' => t('Access Token'),
@@ -17,6 +25,7 @@ function stacksight_admin() {
 	);
 
 	$token = defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : t('YOUR_STACKSIGHT_TOKEN');
+
 	if ($token) {
 		$form['code'] = array(
 			'#markup' => theme('code_config', array('data' => array(
