@@ -9,12 +9,14 @@ require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 function stacksight_admin() {
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
 	$form = array();
-  
-	$form['stacksight_app_id'] = array(
-		'#type' => 'fieldset',
-		'#title' => t('Stack ID'),
-		'#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">'.t("Not set").'</span>'
-	);
+
+	if(defined('STACKSIGHT_APP_ID')){
+		$form['stacksight_app_id'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Stack ID'),
+			'#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">'.t("Not set").'</span>'
+		);
+	}
 
 	$form['stacksight_token'] = array(
 		'#type' => 'fieldset',
@@ -22,12 +24,11 @@ function stacksight_admin() {
 		'#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
 	);
 
-	$app_id = defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : t('YOUR_STACKSIGHT_APP_ID');
 	$token = defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : t('YOUR_STACKSIGHT_TOKEN');
-	if ($app_id && $token) {
+
+	if ($token) {
 		$form['code'] = array(
 			'#markup' => theme('code_config', array('data' => array(
-				'_id' => $app_id,
 				'token' => $token,
 				'module_path' => drupal_get_path('module', 'stacksight'),
 				'diagnostic' => stacksight_get_diagnostic()
@@ -125,10 +126,6 @@ function stacksight_theme() {
 
 function stacksight_get_diagnostic() {
     $list = array();
-
-    if (!defined('STACKSIGHT_APP_ID')) {
-        $list[] = t("App Id is not defined");
-    }
 
     if (!defined('STACKSIGHT_TOKEN')) {
         $list[] = t("Token is not defined<br>");
@@ -577,7 +574,7 @@ function stacksight_backup_call($result){
 
 	$object = array(
 		'category' => 'backups',
-        'title' => 'BackupSight',
+        'title' => 'Backups',
         'desc' => 'what is secureSight and why it\'s important to you!',
         'widgets' => $widgets
 	);
@@ -713,7 +710,7 @@ function stacksight_security_call(){
 		$sending = false;
 		$data = array(
 			'category' => 'security',
-			'title' => t('Security summary'),
+			'title' => t('Security'),
 			'desc' => t('This panel shows the summary how your site is secure (according to the Security review module)'),
 			'plugin_url' => url('admin/reports/security-review',  array('absolute' => TRUE))
 		);
