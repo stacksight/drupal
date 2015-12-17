@@ -504,6 +504,14 @@ function stacksight_cron(){
 		$ss_client->sendHealth($result);
 	}
 
+	$inventory = stacksight_inventory_call();
+	if(!empty($inventory)){
+		$data = array(
+			'data' => $inventory
+		);
+		$ss_client->sendInventory($data);
+	}
+
   	$interval = variable_get('stacksight_interval', 60 * 60);
   	// We usually don't want to act every time cron runs (which could be every
   	// minute) so keep a time for the next run in a variable.
@@ -582,6 +590,62 @@ function stacksight_backup_call($result){
 	if($backups){
 		return $object;
 	} else return false;
+}
+
+function stacksight_inventory_call(){
+	$inventory_modules = array();
+	$inventory_themes = array();
+	$modules = module_list();
+	if($modules && is_array($modules)){
+		foreach($modules as $module){
+			$path = drupal_get_path('module', $module) . '/' . $module . '.info';
+			$info = drupal_parse_info_file($path);
+
+			$dep_modules = array();
+			if(isset($info['dependencies']) && !empty($info['dependencies'])){
+				foreach($info['dependencies'] as $dep_module){
+					$path_dep_mod = drupal_get_path('module', $dep_module) . '/' . $dep_module . '.info';
+					$info_dep_mod = drupal_parse_info_file($path_dep_mod);
+					$dep_modules[] = array(
+						'type' => SSDrupalClient::TYPE_MODULE,
+						'name' => (isset($info_dep_mod['project']) && !empty($info_dep_mod['project'])) ? $info_dep_mod['project'] : $dep_module,
+						'version' => (isset($info_dep_mod['version']) && !empty($info_dep_mod['version'])) ? $info_dep_mod['version'] : false,
+						'label' => (isset($info_dep_mod['name']) && !empty($info_dep_mod['name'])) ? $info_dep_mod['name'] : false,
+						'description' => (isset($info_dep_mod['description']) && !empty($info_dep_mod['description'])) ? $info_dep_mod['description'] : false,
+						'active' => (module_exists($dep_module)) ? true : false,
+						'requires' => false
+					);
+				}
+			}
+
+			$inventory_modules[] = array(
+				'type' => SSDrupalClient::TYPE_MODULE,
+				'name' => (isset($info['project']) && !empty($info['project'])) ? $info['project'] : $dep_module,
+				'version' => (isset($info['version']) && !empty($info['version'])) ? $info['version'] : false,
+				'label' => (isset($info['name']) && !empty($info['name'])) ? $info['name'] : false,
+				'description' => (isset($info['description']) && !empty($info['description'])) ? $info['description'] : false,
+				'active' => (module_exists($module)) ? true : false,
+				'requires' => (!empty($dep_modules)) ? $dep_modules : false
+			);
+		}
+	}
+
+	$themes = list_themes();
+	if($themes && is_array($themes)){
+		foreach($themes as $key => $theme){
+			$inventory_themes[] = array(
+				'type' => SSDrupalClient::TYPE_THEME,
+				'name' => $theme->name,
+				'version' => $theme->info['version'],
+				'label' => $theme->info['name'],
+				'description' => $theme->info['description'],
+				'active' => ($theme->status) ? true : false,
+				'requires' => false
+			);
+		}
+	}
+
+	return array_merge($inventory_modules, $inventory_themes);
 }
 
 function stacksight_security_call(){
