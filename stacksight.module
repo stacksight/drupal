@@ -596,31 +596,36 @@ function stacksight_inventory_call(){
 	$inventory_modules = array();
 	$inventory_themes = array();
 	$modules = module_list();
+
 	if($modules && is_array($modules)){
-		foreach($modules as $module){
+		foreach($modules as $key => $module){
 			$path = drupal_get_path('module', $module) . '/' . $module . '.info';
 			$info = drupal_parse_info_file($path);
 
 			$dep_modules = array();
 			if(isset($info['dependencies']) && !empty($info['dependencies'])){
 				foreach($info['dependencies'] as $dep_module){
-					$path_dep_mod = drupal_get_path('module', $dep_module) . '/' . $dep_module . '.info';
-					$info_dep_mod = drupal_parse_info_file($path_dep_mod);
-					$dep_modules[] = array(
-						'type' => SSDrupalClient::TYPE_MODULE,
-						'name' => (isset($info_dep_mod['project']) && !empty($info_dep_mod['project'])) ? $info_dep_mod['project'] : $dep_module,
-						'version' => (isset($info_dep_mod['version']) && !empty($info_dep_mod['version'])) ? $info_dep_mod['version'] : false,
-						'label' => (isset($info_dep_mod['name']) && !empty($info_dep_mod['name'])) ? $info_dep_mod['name'] : false,
-						'description' => (isset($info_dep_mod['description']) && !empty($info_dep_mod['description'])) ? $info_dep_mod['description'] : false,
-						'active' => (module_exists($dep_module)) ? true : false,
-						'requires' => false
-					);
+					if(!empty($dep_module)){
+						$path_dep_mod = drupal_get_path('module', $dep_module) . '/' . $dep_module . '.info';
+						$info_dep_mod = drupal_parse_info_file($path_dep_mod);
+						if(!empty($info_dep_mod) && is_array($info_dep_mod)){
+							$dep_modules[] = array(
+								'type' => SSDrupalClient::TYPE_MODULE,
+								'name' => (isset($dep_module) && !empty($dep_module)) ? $dep_module : $info_dep_mod['name'],
+								'version' => (isset($info_dep_mod['version']) && !empty($info_dep_mod['version'])) ? $info_dep_mod['version'] : false,
+								'label' => (isset($info_dep_mod['name']) && !empty($info_dep_mod['name'])) ? $info_dep_mod['name'] : false,
+								'description' => (isset($info_dep_mod['description']) && !empty($info_dep_mod['description'])) ? $info_dep_mod['description'] : false,
+								'active' => (module_exists($dep_module)) ? true : false,
+								'requires' => false
+							);
+						}
+					}
 				}
 			}
 
 			$inventory_modules[] = array(
 				'type' => SSDrupalClient::TYPE_MODULE,
-				'name' => (isset($info['project']) && !empty($info['project'])) ? $info['project'] : $dep_module,
+				'name' => (isset($key) && !empty($key)) ? $key : $info['name'],
 				'version' => (isset($info['version']) && !empty($info['version'])) ? $info['version'] : false,
 				'label' => (isset($info['name']) && !empty($info['name'])) ? $info['name'] : false,
 				'description' => (isset($info['description']) && !empty($info['description'])) ? $info['description'] : false,
