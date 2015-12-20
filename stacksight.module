@@ -616,7 +616,7 @@ function stacksight_inventory_call(){
 								'label' => (isset($info_dep_mod['name']) && !empty($info_dep_mod['name'])) ? $info_dep_mod['name'] : false,
 								'description' => (isset($info_dep_mod['description']) && !empty($info_dep_mod['description'])) ? $info_dep_mod['description'] : false,
 								'active' => (module_exists($dep_module)) ? true : false,
-								'requires' => false
+								'requires' => array()
 							);
 						}
 					}
