@@ -630,7 +630,7 @@ function stacksight_inventory_call(){
 				'label' => (isset($info['name']) && !empty($info['name'])) ? $info['name'] : false,
 				'description' => (isset($info['description']) && !empty($info['description'])) ? $info['description'] : false,
 				'active' => (module_exists($module)) ? true : false,
-				'requires' => (!empty($dep_modules)) ? $dep_modules : false
+				'requires' => (!empty($dep_modules)) ? $dep_modules : array()
 			);
 		}
 	}
@@ -645,7 +645,7 @@ function stacksight_inventory_call(){
 				'label' => $theme->info['name'],
 				'description' => $theme->info['description'],
 				'active' => ($theme->status) ? true : false,
-				'requires' => false
+				'requires' => array()
 			);
 		}
 	}
