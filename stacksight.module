@@ -503,15 +503,17 @@ function stacksight_cron(){
 	if(!empty($result)){
 		$ss_client->sendHealth($result);
 	}
-	/*
-	$inventory = stacksight_inventory_call();
-	if(!empty($inventory)){
-		$data = array(
-			'data' => $inventory
-		);
-		$ss_client->sendInventory($data);
+
+	if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+		$inventory = stacksight_inventory_call();
+		if(!empty($inventory)){
+			$data = array(
+				'data' => $inventory
+			);
+			$ss_client->sendInventory($data);
+		}
 	}
-	*/
+
   	$interval = variable_get('stacksight_interval', 60 * 60);
   	// We usually don't want to act every time cron runs (which could be every
   	// minute) so keep a time for the next run in a variable.
