@@ -1,0 +1,7 @@
+stacksight.settings:
+  path: '/admin/config/development/stacksight'
+  defaults:
+    _form: 'Drupal\stacksight\Form\StacksightForm'
+    _title: 'Stacksight config'
+  requirements:
+    _permission: 'access administration pages'
