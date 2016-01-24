@@ -1,0 +1,534 @@
+<?php
+
+require_once('stacksight-php-sdk/SSUtilities.php');
+require_once('stacksight-php-sdk/SSHttpRequest.php');
+require_once('stacksight-php-sdk/SSClientBase.php');
+require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
+require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
+
+function stacksight_admin() {
+	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
+
+	$form = array();
+
+	$form['stacksight_app_id'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('Stack ID'),
+		'#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">'.t("Not set").'</span>'
+	);
+
+	$form['stacksight_token'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('Access Token'),
+		'#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
+	);
+
+	$app_id = defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : t('YOUR_STACKSIGHT_APP_ID');
+	$token = defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : t('YOUR_STACKSIGHT_TOKEN');
+
+	if ($app_id && $token) {
+		$form['code'] = array(
+			'#value' => theme('code_config', array('data' => array(
+				'_id' => $app_id, 
+				'token' => $token, 
+				'module_path' => drupal_get_path('module', 'stacksight'),
+				'diagnostic' => stacksight_get_diagnostic()
+			)))
+		);
+	}
+	//update LK
+	stacksight_updates_publish();
+	return system_settings_form($form);
+}
+
+function stacksight_menu() {
+	$items = array();
+
+	$items['admin/config/development/stacksight'] = array(
+		'title' => 'StackSight',
+		'description' => 'StackSight integration module settings',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('stacksight_admin'),
+		'access arguments' => array('administer stacksight settings'),
+		'weight' => -5,
+	);
+
+	return $items;
+}
+
+function stacksight_perm() {
+	return array('administer stacksight settings');
+}
+
+function stacksight_watchdog($log) {
+	global $ss_client;
+	// exclude certain events
+	$exclude = array('content');
+
+	if (empty($ss_client) || empty($log) || empty($log['type']) || in_array($log['type'], $exclude)) return;
+
+	$res = array();
+	if (!empty($log['message'])) {
+		$message = empty($log['variables']) ? t($log['message']) : t($log['message'], $log['variables']);
+		$message = strip_tags($message);
+
+		if ($log['type'] == 'php') {
+			$severity = stacksight_map_severity_level($log['severity']);
+			$res = $ss_client->sendLog($message, $severity);
+		} else {
+			// process other types...
+		}
+	}
+
+	if ($res && !$res['success']) SSUtilities::error_log($res['message'], 'error');
+}
+
+function stacksight_map_severity_level($drupal_sev_level) {
+	// suppose we have an error if the severity level is malformed
+	$level = 'error';
+
+	switch ($drupal_sev_level) {
+		case WATCHDOG_ERROR:
+			$level = 'error';
+			break;
+
+		case WATCHDOG_WARNING:
+			$level = 'warn';
+			break;
+
+		case WATCHDOG_NOTICE:
+			$level = 'info';
+			break;
+		
+		case WATCHDOG_DEBUG:
+			$level = 'log';
+			break;
+	}
+
+	return $level;
+}
+
+function stacksight_theme() {
+	return array(
+		'code_config' => array(
+			'arguments' => array(
+				'data' => NULL
+			),
+			'template' => 'code_config',
+		),
+	);
+}
+
+function stacksight_get_diagnostic() {
+    $list = array();
+
+    if (!defined('STACKSIGHT_APP_ID')) {
+        $list[] = t("App Id is not defined");
+    }
+
+    if (!defined('STACKSIGHT_TOKEN')) {
+        $list[] = t("Token is not defined<br>");
+    }
+
+    if (!defined('STACKSIGHT_BOOTSTRAPED')) {
+        $list[] = t("bootstrap-drupal.php is not included in settings.php<br>");
+    }
+
+    return $list;
+}
+
+function stacksight_get_availible_updates() {
+  require_once DRUPAL_ROOT . '/modules/update/update.module';
+  require_once DRUPAL_ROOT . '/modules/update/update.compare.inc';
+  $available = update_get_available(TRUE);
+  $updates = update_calculate_project_data($available);
+  return $updates;
+}
+
+////////////
+// Events //
+////////////
+
+function _stacksight_node_events($node, $action) {
+	global $ss_client, $user;
+	if (empty($ss_client) || empty($action) || empty($node)) return;
+
+	$event = $add_actions = array();
+	$url_options = array('absolute' => true);
+	if (user_is_logged_in()) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+
+	$res = $ss_client->publishEvent(array(
+		'action' => $action,
+		'type' => 'content',
+		'subtype' => $node->type,
+		'name' => $node->title,
+		'url' => url('node/' . $node->nid, $url_options)
+	) + $event);
+
+	switch ($action) {
+		case 'updated':
+			if (!empty($node->original)) {
+				// promoted
+				if ($node->original->promote == NODE_NOT_PROMOTED && $node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+				// unpromoted
+				if ($node->original->promote == NODE_PROMOTED && $node->promote == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
+
+				// published
+				if ($node->original->status == NODE_NOT_PUBLISHED && $node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+				// unpublished
+				if ($node->original->status == NODE_PUBLISHED && $node->status == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
+
+				// sticky
+				if ($node->original->sticky == NODE_NOT_STICKY && $node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+				// not sticky
+				if ($node->original->sticky == NODE_STICKY && $node->sticky == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+			}
+			break;
+		
+		case 'created':
+			// checking only "on" actions, cause opposite state did not exist
+			// promoted
+			if ($node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+			// published
+			if ($node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+			// sticky
+			if ($node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+			break;
+	}
+
+	if (!empty($add_actions)) {
+		$add_res = $ss_client->publishEvent(array(
+			'action' => implode(', ', $add_actions),
+			'type' => 'content',
+			'subtype' => $node->type,
+			'name' => $node->title,
+			'url' => url('node/' . $node->nid, $url_options)
+		) + $event);
+	}
+}
+
+function stacksight_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  switch ($op) {
+    case 'insert':
+      	_stacksight_node_events($node, 'created');
+      break;
+    case 'update':
+    	_stacksight_node_events($node, 'updated');
+    	break;  
+    case 'delete':
+    	_stacksight_node_events($node, 'deleted');
+    	break;	
+  }
+}
+
+// user
+function _stacksight_user_events($edit, $account, $action) {
+	global $ss_client, $user;
+
+	if (empty($ss_client) || empty($account) || empty($action)) return;
+	
+	$event = $changed = array(); $event_name = '';
+	
+	if (!empty($account->uid)) {
+		$url_options = array('absolute' => true);
+		$event['url'] = url('user/'.$account->uid, $url_options);
+	}
+	
+	if (user_is_logged_in()) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+
+	$event_name = $account->name;
+	
+	if ($action == 'updated' && !empty($edit)) {
+		$event_name = 'account';
+		// name
+		if ($edit['name'] != $account->name) $changed[] = t('name (@str)', array('@str' => $account->name));
+		// timezone
+		if ($edit['timezone'] != $account->timezone) $changed[] = t('time zone (@str)', array('@str' => $account->timezone));
+		// password
+		if ($edit['pass'] != $account->pass) $changed[] = 'password';
+		// email
+		if ($edit['mail'] != $account->mail) $changed[] = t('email (@str)', array('@str' => $account->mail));
+		// active/blocked
+		if ($edit['status'] != $account->status) $changed[] = $account->status ? t('status (acvive)') : t('status (blocked)');
+		// avatar uploaded
+		if (!empty($account->picture_upload)) $changed[] = t('avatar (new)');
+		// avatar deleted
+		if (!empty($account->picture_delete)) $changed[] = t('avatar (removed)');
+	}
+	
+	// specific what changed (see case 'updated' for details)
+	if (!empty($changed)) {
+		$add_res = $ss_client->publishEvent(array(
+			'action' => 'changed',
+			'type' => 'user',
+			'name' => implode(', ', $changed)
+		) + $event);
+	} else {
+		// general event
+		$res = $ss_client->publishEvent(array(
+			'action' => $action,
+			'type' => 'user',
+			'name' => $event_name
+		) + $event);
+	}
+}
+// https://api.drupal.org/api/drupal/developer%21hooks%21core.php/function/hook_user/6
+/* TODO: Send information who do action and for whom */
+function stacksight_user($op, &$edit, &$account, $category = NULL) {
+	switch ($op) {
+		case 'insert':
+			_stacksight_user_events($edit, $account, 'added');
+			break;
+		case 'update':
+			_stacksight_user_events($edit, $account, 'updated');
+			break;
+		case 'delete':
+			_stacksight_user_events($edit, $account, 'deleted');
+			break;
+		case 'login':
+			_stacksight_user_log_events($edit, $account, 'logged in');
+			break;
+		case 'logout':
+			_stacksight_user_log_events($edit, $account, 'logged out');
+			break;			
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+function _stacksight_user_log_events($edit, $account, $action) {
+	global $ss_client;
+	if (empty($ss_client) || empty($account) || empty($action)) return;
+
+	$event = array();
+	$url_options = array('absolute' => true);
+	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
+
+	$res = $ss_client->publishEvent(array(
+		'action' => $action,
+		'type' => 'user',
+		'name' => '',
+	) + $event);
+}
+
+// files
+function _stacksight_file_events($file, $action) {
+	global $ss_client, $user;
+	$event = array();
+
+	if (empty($ss_client) || empty($file) || empty($action)) return;
+	if ($action == 'uploaded') {
+		// required that condition cause this hook is called 3 times with different parameters
+		if (empty($file->original) || empty($file->status)) return;
+
+		$event['url'] = file_create_url($file->uri);
+	}
+
+	$url_options = array('absolute' => true);
+	if (user_is_logged_in()) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+	$file_ex = explode('/', $file->filemime);
+	if (!empty($file_ex[0])) {
+		$event['subtype'] = $file_ex[0];
+	}
+
+	$res = $ss_client->publishEvent(array(
+		'action' => $action,
+		'type' => 'file',
+		'name' => $file->filename,
+		'id' => $file->fid,
+		'data' => array(
+			'file_name' => $file->filename,
+			'type' => $file->filemime,
+			'size' => $file->filesize,
+			'url' => isset($event['url']) ? $event['url'] : '',
+		)
+	) + $event);
+}
+
+function stacksight_file_presave($file) {
+	_stacksight_file_events($file, 'uploaded');
+}
+
+function stacksight_file_delete($file) {
+	_stacksight_file_events($file, 'deleted');
+}
+
+
+function stacksight_comment(&$a1, $op){
+	switch ($op) {
+		case 'insert':
+			_stacksight_comment_insert($a1);
+			break;
+		case 'update':
+			_stacksight_comment_update($a1);
+			break;
+		case 'delete':
+			_stacksight_comment_delete($a1);
+			break;	
+		case 'publish':
+			_stacksight_comment_update($a1, 'published');
+			break;
+		case 'unpublish':
+			_stacksight_comment_update($a1, 'unpublished');
+			break;		
+	}
+}
+
+
+// comments
+function _stacksight_comment_delete($comment) {
+	global $ss_client, $user;
+	
+	if (empty($ss_client) || empty($comment)) return;
+	$comment = (array) $comment;
+	$event = array();
+	
+	$url_options = array('absolute' => true);
+	if (user_is_logged_in()) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+
+	if ($comment['subject']) $event['name'] = $comment['subject'];
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'deleted',
+		'type' => 'comment'
+	) + $event);
+}
+
+function _stacksight_comment_insert($comment) {
+	global $ss_client, $user;
+	
+	if (empty($ss_client) || empty($comment)) return;
+	$comment = (array) $comment;
+	
+	if ($comment['status'] == COMMENT_NOT_PUBLISHED) return;
+
+	$event = array();
+
+	$url_options = array('absolute' => true);
+	if (user_is_logged_in()) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+	
+	if ($comment['subject']) $event['name'] = $comment['subject'];
+
+	$lang = $comment['language'];
+	if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
+	}
+
+	$res = $ss_client->publishEvent(array(
+		'action' => 'added',
+		'type' => 'comment',
+		'id' => $comment->cid
+	) + $event);
+}
+
+function _stacksight_comment_update($comment, $action = 'updated') {
+	global $ss_client, $user;
+
+	if (empty($ss_client) || empty($comment)) return;
+	$comment = (array) $comment;
+
+	$event = array();
+	$event['action'] = $action;
+
+	$url_options = array('absolute' => true);
+	if (user_is_logged_in()) {
+		$event['user'] = array(
+			'name' => $user->name,
+			'url' => url('user/'.$user->uid, $url_options)
+		);
+	}
+
+	if($comment['subject'])
+		$event['name'] = $comment['subject'];
+
+	$res = $ss_client->publishEvent(array(
+		'type' => 'comment',
+		'id' => $comment['cid'],
+	) + $event);
+}
+
+function stacksight_updates_publish() {
+	global $ss_client;
+	if (empty($ss_client)) return;
+
+	$updates = stacksight_get_availible_updates();
+	$upd = array();
+	foreach ($updates as $key => $uitem) {
+		$upd[] = array(
+			'title' => $uitem['title'],
+			'release_ts' => $uitem['datestamp'],
+			'current_version' => $uitem['existing_version'],
+			'latest_version' => $uitem['latest_version'],
+			'type' => $uitem['project_type'],
+			'status' => $uitem['status'],
+			// 'description' => $uitem['status'],
+			'link' => $uitem['link'],
+			'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
+			'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
+			// 'update_link' => '',
+		);
+	}
+	$ss_client->sendUpdates(array('data' => $upd));
+}
+
+/* update on cron run */
+function stacksight_cron(){
+  watchdog('stacksight','stacksight invoked by cron');
+// Default to an hourly interval. Of course, cron has to be running at least
+  // hourly for this to work.
+  if(module_exists('backup_migrate')){
+//	stacksight_backup_call();
+  }
+  $interval = variable_get('stacksight_interval', 60 * 60);
+  // We usually don't want to act every time cron runs (which could be every
+  // minute) so keep a time for the next run in a variable.
+  if (time() >= variable_get('stacksight_next_execution', 0)) {
+    stacksight_updates_publish();
+    if (!empty($GLOBALS['stacksight_show_status_message'])) {
+      drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
+    }
+    variable_set('stacksight_next_execution', time() + $interval);
+  }
+}
+
+function _stacksight_array_diff_assoc_recursive($array1, $array2) {
+    $difference=array();
+    foreach($array1 as $key => $value) {
+        if( is_array($value) ) {
+            if( !isset($array2[$key]) || !is_array($array2[$key]) ) {
+                $difference[$key] = $value;
+            } else {
+                $new_diff = _stacksight_array_diff_assoc_recursive($value, $array2[$key]);
+                if( !empty($new_diff) )
+                    $difference[$key] = $new_diff;
+            }
+        } else if( !array_key_exists($key,$array2) || $array2[$key] !== $value ) {
+            $difference[$key] = $value;
+        }
+    }
+    return $difference;
+}

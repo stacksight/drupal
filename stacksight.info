@@ -1,1 +1,19 @@
-name = stacksight
+name = StackSight integration for Drupal
+description = Provides StackSight integration for Drupal
+package = "Stacksight LTD"
+dependencies[] = update
+core = "6.x"
+
+; Information added by Drupal.org packaging script on 2015-10-19
+version = "6.x-1.00"
+core = "6.x"
+project = "stacksight"
+datestamp = "1445242742"
+
+
+; Information added by Drupal.org packaging script on 2015-10-25
+version = "6.x-1.31"
+core = "6.x"
+project = "stacksight"
+datestamp = "1445762340"
+
