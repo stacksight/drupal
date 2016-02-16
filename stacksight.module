@@ -560,6 +560,12 @@ function stacksight_backup_call($result){
 	foreach($backup_list as $backup){
 		if(is_array($backup)){
             foreach($backup as $key => $backup_info){
+
+				$backup_time = date('Y-m-d', $backup_info->file_info['filetime']);
+				$now =  date('Y-m-d', strtotime("-1 month"));
+				if($backup_time < $now)
+					continue;
+
                 if(isset($backup_info->file_info['file_id']))
                     $url_destination = $backup_info->file_info['destination_id'].'/'.$backup_info->file_info['file_id'];
 
