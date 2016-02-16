@@ -7,6 +7,8 @@ require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
 require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
+	$last_cron_run = variable_get('cron_last');
+
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
 	$form = array();
 
@@ -34,6 +36,10 @@ function stacksight_admin() {
 				'diagnostic' => stacksight_get_diagnostic()
 			)))
 		);
+	}
+
+	if($last_cron_run < strtotime("-1 day")){
+		drupal_set_message(t('You should run cron. Last runing cron did at %time', array('%time' => date_iso8601($last_cron_run))));
 	}
 
 	//update LK
