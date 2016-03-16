@@ -1,5 +1,6 @@
 <?php
 
+require_once('texts.php');
 require_once('stacksight-php-sdk/SSUtilities.php');
 require_once('stacksight-php-sdk/SSHttpRequest.php');
 require_once('stacksight-php-sdk/SSClientBase.php');
@@ -7,59 +8,162 @@ require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
 require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
-	$last_cron_run = variable_get('cron_last');
+    drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
+    $form = array();
+    $form['stacksight_app_id'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Stack ID'),
+        '#default_value' => variable_get('stacksight_app_id', ''),
+        '#size' => 68,
+        '#maxlength' => 24,
+        '#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
+        '#required' => false,
+    );
 
-	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
-	$form = array();
+    $form['stacksight_token'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Access Token'),
+        '#default_value' => variable_get('stacksight_token', ''),
+        '#size' => 68,
+        '#maxlength' => 68,
+        '#description' => t("An access token as created at <a href='https://apps.stacksight.io'>stacksight.io</a>"),
+        '#required' => TRUE,
+    );
 
-	if(defined('STACKSIGHT_APP_ID')){
-		$form['stacksight_app_id'] = array(
-			'#type' => 'fieldset',
-			'#title' => t('Stack ID'),
-			'#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">'.t("Not set").'</span>'
-		);
-	}
+    $form['stacksight_group'] = array(
+        '#type' => 'textfield',
+        '#title' => t('App group'),
+        '#default_value' => variable_get('stacksight_group', ''),
+        '#size' => 68,
+        '#maxlength' => 68,
+        '#description' => t("Stack application group"),
+        '#required' => false,
+    );
 
-	$form['stacksight_token'] = array(
-		'#type' => 'fieldset',
-		'#title' => t('Access Token'),
-		'#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
-	);
+    $app_id = variable_get('stacksight_app_id');
+    $token = variable_get('stacksight_token');
+    $group = variable_get('stacksight_token');
+    if ($app_id && $token) {
+        $form['code'] = array(
+            '#markup' => theme('code_config', array('data' => array(
+                '_id' => $app_id,
+                'token' => $token,
+                'module_path' => drupal_get_path('module', 'stacksight'),
+                'diagnostic' => stacksight_get_diagnostic($app_id, $token)
+            )))
+        );
+    }
 
-	$token = defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : t('YOUR_STACKSIGHT_TOKEN');
+    $last_cron_run = variable_get('cron_last');
 
-	if ($token) {
-		$form['code'] = array(
-			'#markup' => theme('code_config', array('data' => array(
-				'token' => $token,
-				'module_path' => drupal_get_path('module', 'stacksight'),
-				'diagnostic' => stacksight_get_diagnostic()
-			)))
-		);
-	}
+    if($last_cron_run < strtotime("-1 day")){
+        drupal_set_message(t('You should run cron. Last runing cron did at %time', array('%time' => date_iso8601($last_cron_run))));
+    }
 
-	if($last_cron_run < strtotime("-1 day")){
-		drupal_set_message(t('You should run cron. Last runing cron did at %time', array('%time' => date_iso8601($last_cron_run))));
-	}
+    //update LK
+    stacksight_updates_publish();
+    return system_settings_form($form);
+}
 
-	//update LK
-	stacksight_updates_publish();
-	return system_settings_form($form);
+function stacksight_admin_features() {
+    drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
+    $form = array();
+
+    $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
+    $form['stacksight_include_logs'] = array(
+        '#type' => 'checkbox',
+        '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs'),
+        '#default_value' => variable_get('stacksight_include_logs', false),
+        '#description' => t($description),
+        '#required' => false
+    );
+
+    $description = (defined('stacksight_health_text')) ? stacksight_health_text : '';
+    $form['stacksight_include_health'] = array(
+        '#type' => 'checkbox',
+        '#title' => (defined('stacksight_health_title')) ? stacksight_health_title : t('Include Health'),
+        '#default_value' => variable_get('stacksight_include_health', false),
+        '#description' => t($description),
+        '#required' => false
+    );
+
+    $description = (defined('stacksight_inventory_text')) ? stacksight_inventory_text : '';
+    $form['stacksight_include_inventory'] = array(
+        '#type' => 'checkbox',
+        '#title' => (defined('stacksight_inventory_title')) ? stacksight_inventory_title : t('Include Inventory'),
+        '#default_value' => variable_get('stacksight_include_inventory', false),
+        '#description' => t($description),
+        '#required' => false
+    );
+
+    $description = (defined('stacksight_events_text')) ? stacksight_events_text : '';
+    $form['stacksight_include_events'] = array(
+        '#type' => 'checkbox',
+        '#title' => (defined('stacksight_events_title')) ? stacksight_events_title : t('Include Events'),
+        '#default_value' => variable_get('stacksight_include_events', false),
+        '#description' => t($description),
+        '#required' => false
+    );
+
+    $description = (defined('stacksight_updates_text')) ? stacksight_updates_text : '';
+    $form['stacksight_include_updates'] = array(
+        '#type' => 'checkbox',
+        '#title' => (defined('stacksight_updates_title')) ? stacksight_updates_title : t('Include Updates'),
+        '#default_value' => variable_get('stacksight_include_updates', false),
+        '#description' => t($description),
+        '#required' => false
+    );
+
+
+    $app_id = variable_get('stacksight_app_id');
+    $token = variable_get('stacksight_token');
+
+    $last_cron_run = variable_get('cron_last');
+
+    if($last_cron_run < strtotime("-1 day")){
+        drupal_set_message(t('You should run cron. Last runing cron did at %time', array('%time' => date_iso8601($last_cron_run))));
+    }
+
+    //update LK
+    stacksight_updates_publish();
+    return system_settings_form($form);
 }
 
 function stacksight_menu() {
-	$items = array();
+    $items = array();
 
-	$items['admin/config/development/stacksight'] = array(
-		'title' => 'StackSight',
-		'description' => 'StackSight integration module settings',
-		'page callback' => 'drupal_get_form',
-		'page arguments' => array('stacksight_admin'),
-		'access arguments' => array('administer stacksight settings'),
-		'weight' => -5,
-	);
+    $items['admin/config/development/stacksight'] = array(
+        'title' => 'StackSight',
+        'description' => 'StackSight integration module settings',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('stacksight_admin'),
+        'access arguments' => array('administer stacksight settings'),
+        'weight' => 0,
+    );
 
-	return $items;
+    $items['admin/config/development/stacksight/settings'] =
+        array(
+            'title' => t('Settings'),
+            'description' => t('Settings for Ticket System'),
+            'type' => MENU_DEFAULT_LOCAL_TASK,
+            'page callback' => 'drupal_get_form',
+            'page arguments' => array('stacksight_admin'),
+            'access arguments' => array('administer stacksight settings'),
+            'weight' => 5,
+        );
+    // definition for additional tab.
+    $items['admin/config/development/stacksight/features'] =
+        array(
+            'title' => t('Features'),
+            'description' => t('Settings for Ticket System'),
+            'page callback' => 'drupal_get_form',
+            'page arguments' => array('stacksight_admin_features'),
+            'access arguments' => array('administer stacksight settings'),
+            'type' => MENU_LOCAL_TASK,
+            'weight' => 10,
+        );
+
+    return $items;
 }
 
 function stacksight_permission() {
@@ -158,66 +262,68 @@ function stacksight_get_availible_updates() {
 ////////////
 
 function _stacksight_node_events($node, $action) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($action) || empty($node)) return;
+    if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        if (empty($ss_client) || empty($action) || empty($node)) return;
 
-	$event = $add_actions = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
+        $event = $add_actions = array();
+        $url_options = array('absolute' => true);
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/' . $user->uid, $url_options)
+            );
+        }
 
-	$res = $ss_client->publishEvent(array(
-		'action' => $action,
-		'type' => 'content',
-		'subtype' => $node->type,
-		'name' => $node->title,
-		'url' => url('node/' . $node->nid, $url_options)
-	) + $event);
+        $res = $ss_client->publishEvent(array(
+                'action' => $action,
+                'type' => 'content',
+                'subtype' => $node->type,
+                'name' => $node->title,
+                'url' => url('node/' . $node->nid, $url_options)
+            ) + $event);
 
-	switch ($action) {
-		case 'updated':
-			if (!empty($node->original)) {
-				// promoted
-				if ($node->original->promote == NODE_NOT_PROMOTED && $node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
-				// unpromoted
-				if ($node->original->promote == NODE_PROMOTED && $node->promote == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
+        switch ($action) {
+            case 'updated':
+                if (!empty($node->original)) {
+                    // promoted
+                    if ($node->original->promote == NODE_NOT_PROMOTED && $node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+                    // unpromoted
+                    if ($node->original->promote == NODE_PROMOTED && $node->promote == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
 
-				// published
-				if ($node->original->status == NODE_NOT_PUBLISHED && $node->status == NODE_PUBLISHED) $add_actions[] = 'published';
-				// unpublished
-				if ($node->original->status == NODE_PUBLISHED && $node->status == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
+                    // published
+                    if ($node->original->status == NODE_NOT_PUBLISHED && $node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+                    // unpublished
+                    if ($node->original->status == NODE_PUBLISHED && $node->status == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
 
-				// sticky
-				if ($node->original->sticky == NODE_NOT_STICKY && $node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
-				// not sticky
-				if ($node->original->sticky == NODE_STICKY && $node->sticky == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
-			}
-			break;
-		
-		case 'created':
-			// checking only "on" actions, cause opposite state did not exist
-			// promoted
-			if ($node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
-			// published
-			if ($node->status == NODE_PUBLISHED) $add_actions[] = 'published';
-			// sticky
-			if ($node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
-			break;
-	}
+                    // sticky
+                    if ($node->original->sticky == NODE_NOT_STICKY && $node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+                    // not sticky
+                    if ($node->original->sticky == NODE_STICKY && $node->sticky == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+                }
+                break;
 
-	if (!empty($add_actions)) {
-		$add_res = $ss_client->publishEvent(array(
-			'action' => implode(', ', $add_actions),
-			'type' => 'content',
-			'subtype' => $node->type,
-			'name' => $node->title,
-			'url' => url('node/' . $node->nid, $url_options)
-		) + $event);
-	}
+            case 'created':
+                // checking only "on" actions, cause opposite state did not exist
+                // promoted
+                if ($node->promote == NODE_PROMOTED) $add_actions[] = 'promoted';
+                // published
+                if ($node->status == NODE_PUBLISHED) $add_actions[] = 'published';
+                // sticky
+                if ($node->sticky == NODE_STICKY) $add_actions[] = 'sticked';
+                break;
+        }
+
+        if (!empty($add_actions)) {
+            $add_res = $ss_client->publishEvent(array(
+                    'action' => implode(', ', $add_actions),
+                    'type' => 'content',
+                    'subtype' => $node->type,
+                    'name' => $node->title,
+                    'url' => url('node/' . $node->nid, $url_options)
+                ) + $event);
+        }
+    }
 }
 
 function stacksight_node_update($node) {
@@ -456,59 +562,68 @@ function stacksight_comment_update($comment) {
 }
 
 function stacksight_updates_publish() {
-	global $ss_client;
-	if (empty($ss_client)) return;
+    if(defined('STACKSIGHT_INCLUDE_UPDATES') && STACKSIGHT_INCLUDE_UPDATES == true){
+        global $ss_client;
+        if (empty($ss_client)) return;
 
-	$updates = stacksight_get_availible_updates();
-	$upd = array();
-	foreach ($updates as $key => $uitem) {
-		$upd[] = array(
-			'title' => $uitem['title'],
-			'release_ts' => $uitem['datestamp'],
-			'current_version' => $uitem['existing_version'],
-			'latest_version' => $uitem['latest_version'],
-			'type' => $uitem['project_type'],
-			'status' => $uitem['status'],
-			// 'description' => $uitem['status'],
-			'link' => $uitem['link'],
-			'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
-			'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
-			// 'update_link' => '',
-		);
-	}
+        $updates = stacksight_get_availible_updates();
+        $upd = array();
+        foreach ($updates as $key => $uitem) {
+            $upd[] = array(
+                'title' => $uitem['title'],
+                'release_ts' => $uitem['datestamp'],
+                'current_version' => $uitem['existing_version'],
+                'latest_version' => $uitem['latest_version'],
+                'type' => $uitem['project_type'],
+                'status' => $uitem['status'],
+                // 'description' => $uitem['status'],
+                'link' => $uitem['link'],
+                'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
+                'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
+                // 'update_link' => '',
+            );
+        }
 
-	$ss_client->sendUpdates(array('data' => $upd));
+        $ss_client->sendUpdates(array('data' => $upd));
+    }
 }
 
 /* update on cron run */
 function stacksight_cron(){
-	global $ss_client;
+    global $ss_client;
 
-  	watchdog('stacksight','stacksight invoked by cron');
+    if(!defined('STACKSIGHT_TOKEN'))
+        return;
+
+    watchdog('stacksight','stacksight invoked by cron');
 	// Default to an hourly interval. Of course, cron has to be running at least
   	// hourly for this to work.
   	$result = array();
-	if(module_exists('backup_migrate')){
-		$backup_migrate = stacksight_backup_call($result);
-		if(!empty($backup_migrate))
-			$result['data'][] = $backup_migrate;
-  	}
-  	if(module_exists('yoast_seo')){
-		$yoast_seo = stacksight_seo_call();
-		if(!empty($yoast_seo))
-			$result['data'][] = $yoast_seo;
-  	}
 
-	if(module_exists('security_review')){
-		module_load_include('inc', 'security_review', 'security_review.help');
-		$security_review = stacksight_security_call();
-		if(!empty($security_review))
-			$result['data'][] = $security_review;
-	}
+    if(defined('STACKSIGHT_INCLUDE_HEALTH') && STACKSIGHT_INCLUDE_HEALTH == true){
+        if(module_exists('backup_migrate')){
+            $backup_migrate = stacksight_backup_call($result);
+            if(!empty($backup_migrate))
+                $result['data'][] = $backup_migrate;
+        }
 
-	if(!empty($result)){
-		$ss_client->sendHealth($result);
-	}
+        if(module_exists('yoast_seo')){
+            $yoast_seo = stacksight_seo_call();
+            if(!empty($yoast_seo))
+                $result['data'][] = $yoast_seo;
+        }
+
+        if(module_exists('security_review')){
+            module_load_include('inc', 'security_review', 'security_review.help');
+            $security_review = stacksight_security_call();
+            if(!empty($security_review))
+                $result['data'][] = $security_review;
+        }
+
+        if(!empty($result)){
+            $ss_client->sendHealth($result);
+        }
+    }
 
 	if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
 		$inventory = stacksight_inventory_call();
