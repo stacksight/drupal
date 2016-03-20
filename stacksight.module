@@ -43,8 +43,8 @@ function stacksight_admin() {
     $app_id = variable_get('stacksight_app_id');
     $token = variable_get('stacksight_token');
     $group = variable_get('stacksight_token');
-    if ($app_id && $token) {
-        $form['code'] = array(
+//    if ($app_id && $token) {
+        $form['stacksight_code'] = array(
             '#markup' => theme('code_config', array('data' => array(
                 '_id' => $app_id,
                 'token' => $token,
@@ -52,7 +52,7 @@ function stacksight_admin() {
                 'diagnostic' => stacksight_get_diagnostic($app_id, $token)
             )))
         );
-    }
+//    }
 
     $last_cron_run = variable_get('cron_last');
 
@@ -237,8 +237,10 @@ function stacksight_theme() {
 function stacksight_get_diagnostic() {
     $list = array();
 
-    if (!defined('STACKSIGHT_TOKEN')) {
-        $list[] = t("Token is not defined<br>");
+    if(defined('STACKSIGHT_BOOTSTRAPED')){
+        if (!defined('STACKSIGHT_TOKEN')) {
+            $list[] = t("Token is not defined<br>");
+        }
     }
 
     if (!defined('STACKSIGHT_BOOTSTRAPED')) {
