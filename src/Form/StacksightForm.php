@@ -59,7 +59,7 @@ class StacksightForm extends FormBase {
         }
 
         if (!defined('STACKSIGHT_BOOTSTRAPED')) {
-            $list[] = t("bootstrap-drupal.php is not included in settings.php")->render();
+            $list[] = t("bootstrap-drupal-8.php is not included in settings.php")->render();
         }
         return $list;
     }
