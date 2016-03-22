@@ -244,7 +244,7 @@ function stacksight_get_diagnostic() {
     }
 
     if (!defined('STACKSIGHT_BOOTSTRAPED')) {
-        $list[] = t("bootstrap-drupal.php is not included in settings.php<br>");
+        $list[] = t("bootstrap-drupal-7.php is not included in settings.php<br>");
     }
 
     return $list;
