@@ -5,3 +5,11 @@ stacksight.settings:
     _title: 'Stacksight config'
   requirements:
     _permission: 'access administration pages'
+
+stacksight.features:
+  path: '/admin/config/development/stacksight/features'
+  defaults:
+    _form: 'Drupal\stacksight\Form\StacksightFeaturesForm'
+    _title: 'Stacksight config of features'
+  requirements:
+    _permission: 'access administration pages'

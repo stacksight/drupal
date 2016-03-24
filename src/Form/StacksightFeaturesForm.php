@@ -8,7 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 /**
  * Configure logging settings for this site.
  */
-class StacksightForm extends ConfigFormBase {
+class StacksightFeaturesForm extends ConfigFormBase {
 
     public function getFormId() {
         return 'stacksight_form_settings';
