@@ -11,12 +11,12 @@ use Drupal\Core\Form\FormStateInterface;
 class StacksightFeaturesForm extends ConfigFormBase {
 
     public function getFormId() {
-        return 'stacksight_form_settings';
+        return 'stacksight_form_features';
     }
 
     protected function getEditableConfigNames() {
         return array(
-            'stacksight.settings'
+            'stacksight.features'
         );
     }
 
@@ -25,46 +25,55 @@ class StacksightFeaturesForm extends ConfigFormBase {
      */
     public function buildForm(array $form, FormStateInterface $form_state)
     {
-        $config = $this->config('stacksight.settings');
-        $form['token'] = array(
-            '#type' => 'textfield',
-            '#title' => t('Access Token')->render(),
-            '#default_value' => $config->get('main.token'),
-            '#required' => true,
-//            '#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">' . t("Not set")->render() . '</span>'
+        $config = $this->config('stacksight.features');
+
+        $form = array();
+
+        $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
+        $form['stacksight_include_logs'] = array(
+            '#type' => 'checkbox',
+            '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs'),
+            '#default_value' => $config->get('features.include_logs'),
+            '#description' => t($description),
+            '#required' => false
         );
 
-        $form['app_id'] = array(
-            '#type' => 'textfield',
-            '#title' => t('Stack ID')->render(),
-            '#default_value' => $config->get('main.app_id'),
-            '#required' => false,
-//            '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">' . t("Not set")->render() . '</span>'
+        $description = (defined('stacksight_health_text')) ? stacksight_health_text : '';
+        $form['stacksight_include_health'] = array(
+            '#type' => 'checkbox',
+            '#title' => (defined('stacksight_health_title')) ? stacksight_health_title : t('Include Health'),
+            '#default_value' => ($conf = $config->get('features.include_health')) ? $conf : true,
+            '#description' => t($description),
+            '#required' => false
         );
 
-        $form['group'] = array(
-            '#type' => 'textfield',
-            '#title' => t('Stacksight group')->render(),
-            '#default_value' => $config->get('main.group'),
-            '#required' => false,
-//            '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">' . t("Not set")->render() . '</span>'
+        $description = (defined('stacksight_inventory_text')) ? stacksight_inventory_text : '';
+        $form['stacksight_include_inventory'] = array(
+            '#type' => 'checkbox',
+            '#title' => (defined('stacksight_inventory_title')) ? stacksight_inventory_title : t('Include Inventory'),
+            '#default_value' => ($conf = $config->get('features.include_inventory')) ? $conf : true,
+            '#description' => t($description),
+            '#required' => false
         );
 
-        $token = defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : t('YOUR_STACKSIGHT_TOKEN')->render();
-//        if ($token) {
-        $form['code'] = array(
-            '#theme' => 'code_config',
-            '#type' => 'markup',
-            '#name' => 'instruction',
-            '#attributes' => array(
-                'data' => array(
-                    'token' => $token,
-                    'module_path' => drupal_get_path('module', 'stacksight'),
-                    'diagnostic' => $this->_diagnostic()
-                )
-            ),
+        $description = (defined('stacksight_events_text')) ? stacksight_events_text : '';
+        $form['stacksight_include_events'] = array(
+            '#type' => 'checkbox',
+            '#title' => (defined('stacksight_events_title')) ? stacksight_events_title : t('Include Events'),
+            '#default_value' => ($conf = $config->get('features.include_events')) ? $conf : true,
+            '#description' => t($description),
+            '#required' => false
         );
-//        }
+
+        $description = (defined('stacksight_updates_text')) ? stacksight_updates_text : '';
+        $form['stacksight_include_updates'] = array(
+            '#type' => 'checkbox',
+            '#title' => (defined('stacksight_updates_title')) ? stacksight_updates_title : t('Include Updates'),
+            '#default_value' => ($conf = $config->get('features.include_updates')) ? $conf : true,
+            '#description' => t($description),
+            '#required' => false
+        );
+        
         $form['actions']['#type'] = 'actions';
         return parent::buildForm($form, $form_state);
     }
@@ -85,10 +94,12 @@ class StacksightFeaturesForm extends ConfigFormBase {
      * {@inheritdoc}
      */
     public function submitForm(array &$form, FormStateInterface $form_state) {
-        $this->config('stacksight.settings')
-            ->set('main.token', $form_state->getValue('token'))
-            ->set('main.app_id', $form_state->getValue('app_id'))
-            ->set('main.group', $form_state->getValue('group'))
+        $this->config('stacksight.features')
+            ->set('features.include_logs', $form_state->getValue('stacksight_include_logs'))
+            ->set('features.include_health', $form_state->getValue('stacksight_include_health'))
+            ->set('features.include_inventory', $form_state->getValue('stacksight_include_inventory'))
+            ->set('features.include_events', $form_state->getValue('stacksight_include_events'))
+            ->set('features.include_updates', $form_state->getValue('stacksight_include_updates'))
             ->save();
 
         parent::submitForm($form, $form_state);
