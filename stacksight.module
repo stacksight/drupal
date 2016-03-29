@@ -30,27 +30,29 @@ function stacksight_cron(){
 }
 
 function stacksight_updates_publish() {
-	global $ss_client;
-	if (empty($ss_client)) return;
+	if(defined('STACKSIGHT_INCLUDE_UPDATES') && STACKSIGHT_INCLUDE_UPDATES === true) {
+		global $ss_client;
+		if (empty($ss_client)) return;
 
-	$updates = stacksight_get_availible_updates();
-	$upd = array();
-	foreach ($updates as $key => $uitem) {
-		$upd[] = array(
-			'title' => $uitem['title'],
-			'release_ts' => $uitem['datestamp'],
-			'current_version' => $uitem['existing_version'],
-			'latest_version' => $uitem['latest_version'],
-			'type' => $uitem['project_type'],
-			'status' => $uitem['status'],
-			// 'description' => $uitem['status'],
-			'link' => $uitem['link'],
-			'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
-			'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
-			// 'update_link' => '',
-		);
+		$updates = stacksight_get_availible_updates();
+		$upd = array();
+		foreach ($updates as $key => $uitem) {
+			$upd[] = array(
+				'title' => $uitem['title'],
+				'release_ts' => $uitem['datestamp'],
+				'current_version' => $uitem['existing_version'],
+				'latest_version' => $uitem['latest_version'],
+				'type' => $uitem['project_type'],
+				'status' => $uitem['status'],
+				// 'description' => $uitem['status'],
+				'link' => $uitem['link'],
+				'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
+				'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
+				// 'update_link' => '',
+			);
+		}
+		$ss_client->sendUpdates(array('data' => $upd));
 	}
-	$ss_client->sendUpdates(array('data' => $upd));
 }
 
 function stacksight_get_availible_updates() {
@@ -65,99 +67,101 @@ function stacksight_get_availible_updates() {
 
 
 function _stacksight_user_events($account, $action) {
-	global $ss_client;
-	if (empty($ss_client) || empty($account) || empty($action)) return;
-	//		\Drupal::currentUser()->id();
-	$user_id = $account->get('uid')->value;
-	if(!$user_id) $user_id = \Drupal::currentUser()->id();
-	$user = User::load($user_id);
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true){
+		global $ss_client;
+		if (empty($ss_client) || empty($account) || empty($action)) return;
+		//		\Drupal::currentUser()->id();
+		$user_id = $account->get('uid')->value;
+		if(!$user_id) $user_id = \Drupal::currentUser()->id();
+		$user = User::load($user_id);
 
-	$event = $changed = array(); $event_name = '';
-	if (!empty($user_id)) {
-		$url_options = array('absolute' => true);
-		$url = Url::fromUri("entity:user/$user_id", $url_options);
-		if($url->isRouted()){
-			$event['url'] = $url->toString();
-		}
-
-	}
-	if (!empty($user)) {
-		$event['user'] = array(
-			'name' => $user->get('name')->value,
-		);
-	}
-
-	$event_name = $user->get('name')->value;
-
-	if ($action == 'updated' && !empty($account->original)) {
-		$event_name = 'account';
-		$origin = $account->original;
-
-		// name
-		if ($user->get('name')->value != $origin->get('name')->value){
-			$message = t('name (@str)', array('@str' => $user->get('name')->value));
-			$changed[] = $message->render();
-		}
-		// timezone
-		if ($user->get('timezone')->value != $origin->get('timezone')->value){
-			$message = t('time zone (@str)', array('@str' => $user->get('timezone')->value));
-			$changed[] = $message->render();
-		}
-		// password
-		if ($user->get('pass')->value != $origin->get('pass')->value){
-			$changed[] = 'password';
-		}
-		// email
-		if ($user->get('mail')->value != $origin->get('mail')->value){
-			$message = t('email (@str)', array('@str' => $user->get('mail')->value));
-			$changed[] = $message->render();
-		}
-		//  active/blocked
-		if ($user->get('status')->value != $origin->get('status')->value){
-			if($user->get('status')->value){
-				$message = t('status (acvive)');
-			} else{
-				$message =  t('status (blocked)');
+		$event = $changed = array(); $event_name = '';
+		if (!empty($user_id)) {
+			$url_options = array('absolute' => true);
+			$url = Url::fromUri("entity:user/$user_id", $url_options);
+			if($url->isRouted()){
+				$event['url'] = $url->toString();
 			}
-			$changed[] = $message->render();
+
+		}
+		if (!empty($user)) {
+			$event['user'] = array(
+				'name' => $user->get('name')->value,
+			);
 		}
 
-		$image_url = false;
-		$user=\Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
-		if(isset($user->get('user_picture')->entity) && $user->get('user_picture')->entity->url()) {
-			$image_url = true;
+		$event_name = $user->get('name')->value;
+
+		if ($action == 'updated' && !empty($account->original)) {
+			$event_name = 'account';
+			$origin = $account->original;
+
+			// name
+			if ($user->get('name')->value != $origin->get('name')->value){
+				$message = t('name (@str)', array('@str' => $user->get('name')->value));
+				$changed[] = $message->render();
+			}
+			// timezone
+			if ($user->get('timezone')->value != $origin->get('timezone')->value){
+				$message = t('time zone (@str)', array('@str' => $user->get('timezone')->value));
+				$changed[] = $message->render();
+			}
+			// password
+			if ($user->get('pass')->value != $origin->get('pass')->value){
+				$changed[] = 'password';
+			}
+			// email
+			if ($user->get('mail')->value != $origin->get('mail')->value){
+				$message = t('email (@str)', array('@str' => $user->get('mail')->value));
+				$changed[] = $message->render();
+			}
+			//  active/blocked
+			if ($user->get('status')->value != $origin->get('status')->value){
+				if($user->get('status')->value){
+					$message = t('status (acvive)');
+				} else{
+					$message =  t('status (blocked)');
+				}
+				$changed[] = $message->render();
+			}
+
+			$image_url = false;
+			$user=\Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+			if(isset($user->get('user_picture')->entity) && $user->get('user_picture')->entity->url()) {
+				$image_url = true;
+			}
+
+			$user_origin_array = $origin->toArray();
+			$user_array = $user->toArray();
+
+			// avatar uploaded
+			if (empty($user_origin_array['user_picture']) && !empty($user_array['user_picture'])){
+				$message = t('avatar (new)');
+				$changed[] = $message->render();
+			}
+
+			// avatar deleted
+			if (!empty($user_origin_array['user_picture']) && empty($user_array['user_picture'])){
+				$message = t('avatar (removed)');
+				$changed[] = $message->render();
+			}
 		}
 
-		$user_origin_array = $origin->toArray();
-		$user_array = $user->toArray();
-
-		// avatar uploaded
-		if (empty($user_origin_array['user_picture']) && !empty($user_array['user_picture'])){
-			$message = t('avatar (new)');
-			$changed[] = $message->render();
-		}
-
-		// avatar deleted
-		if (!empty($user_origin_array['user_picture']) && empty($user_array['user_picture'])){
-			$message = t('avatar (removed)');
-			$changed[] = $message->render();
-		}
-	}
-
-	// general event
-	$res = $ss_client->publishEvent(array(
-			'action' => $action,
-			'type' => 'user',
-			'name' => $event_name
-		) + $event);
-
-	// specific what changed (see case 'updated' for details)
-	if (!empty($changed)) {
-		$add_res = $ss_client->publishEvent(array(
-				'action' => 'changed',
+		// general event
+		$res = $ss_client->publishEvent(array(
+				'action' => $action,
 				'type' => 'user',
-				'name' => implode(', ', $changed)
+				'name' => $event_name
 			) + $event);
+
+		// specific what changed (see case 'updated' for details)
+		if (!empty($changed)) {
+			$add_res = $ss_client->publishEvent(array(
+					'action' => 'changed',
+					'type' => 'user',
+					'name' => implode(', ', $changed)
+				) + $event);
+		}
 	}
 }
 
@@ -174,19 +178,21 @@ function stacksight_user_delete(EntityInterface $entity) {
 }
 
 function _stacksight_user_log_events($account, $action) {
-	global $ss_client;
-	if (empty($ss_client) || empty($account) || empty($action)) return;
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true) {
+		global $ss_client;
+		if (empty($ss_client) || empty($account) || empty($action)) return;
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	$uid =$account['uid'];
-	$url = Url::fromUri("entity:user/$uid", $url_options);
-	$event['user'] = array('name' => $account['name'], 'url' => $url->toString());
-	$res = $ss_client->publishEvent(array(
-			'action' => $action,
-			'type' => 'user',
-			'name' => '',
-		) + $event);
+		$event = array();
+		$url_options = array('absolute' => true);
+		$uid = $account['uid'];
+		$url = Url::fromUri("entity:user/$uid", $url_options);
+		$event['user'] = array('name' => $account['name'], 'url' => $url->toString());
+		$res = $ss_client->publishEvent(array(
+				'action' => $action,
+				'type' => 'user',
+				'name' => '',
+			) + $event);
+	}
 }
 
 function stacksight_user_login(UserInterface $account) {
@@ -216,189 +222,196 @@ function stacksight_node_delete(EntityInterface $node){
 }
 
 function _stacksight_node_events($node, $action) {
-	global $ss_client;
-	if (empty($ss_client) || empty($action) || empty($node)) return;
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true){
+		global $ss_client;
+		if (empty($ss_client) || empty($action) || empty($node)) return;
 
-	$event = $add_actions = array();
-	$url_options = array('absolute' => true);
-	$user_id = \Drupal::currentUser()->id();
-	if (\Drupal::currentUser()->isAuthenticated()) {
-		$user = User::load($user_id);
-		$event['user'] = array(
-			'name' => $user->get('name')->value,
-		);
-		$url = Url::fromUri("entity:user/$user_id", $url_options);
-		if($url->isRouted()){
-			$event['url'] = $url->toString();
-		}
-	}
-	$nid = $node->get('nid')->value;
-	$url = Url::fromUri("entity:node/$nid", $url_options);
-	if($url->isRouted()){
-		$url_nid = $url->toString();
-	}
-
-	$res = $ss_client->publishEvent(array(
-			'action' => $action,
-			'type' => 'content',
-			'subtype' => $node->get('type')->value,
-			'name' => $node->get('title')->value,
-			'url' => $url_nid
-		) + $event);
-
-	switch ($action) {
-		case 'updated':
-			if (!empty($node->original)) {
-				// promoted
-				if ($node->original->get('promote')->value == NODE_NOT_PROMOTED && $node->get('promote')->value == NODE_PROMOTED) $add_actions[] = 'promoted';
-				// unpromoted
-				if ($node->original->get('promote')->value == NODE_PROMOTED && $node->get('promote')->value == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
-
-				// published
-				if ($node->original->get('status')->value == NODE_NOT_PUBLISHED && $node->get('status')->value == NODE_PUBLISHED) $add_actions[] = 'published';
-				// unpublished
-				if ($node->original->get('status')->value == NODE_PUBLISHED && $node->get('status')->value == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
-
-				// sticky
-				if ($node->original->get('sticky')->value == NODE_NOT_STICKY && $node->get('sticky')->value == NODE_STICKY) $add_actions[] = 'sticked';
-				// not sticky
-				if ($node->original->get('sticky')->value == NODE_STICKY && $node->get('sticky')->value == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+		$event = $add_actions = array();
+		$url_options = array('absolute' => true);
+		$user_id = \Drupal::currentUser()->id();
+		if (\Drupal::currentUser()->isAuthenticated()) {
+			$user = User::load($user_id);
+			$event['user'] = array(
+				'name' => $user->get('name')->value,
+			);
+			$url = Url::fromUri("entity:user/$user_id", $url_options);
+			if($url->isRouted()){
+				$event['url'] = $url->toString();
 			}
-			break;
+		}
+		$nid = $node->get('nid')->value;
+		$url = Url::fromUri("entity:node/$nid", $url_options);
+		if($url->isRouted()){
+			$url_nid = $url->toString();
+		}
 
-		case 'created':
-			// checking only "on" actions, cause opposite state did not exist
-			// promoted
-			if ($node->get('promote')->value == NODE_PROMOTED) $add_actions[] = 'promoted';
-			// published
-			if ($node->get('status')->value == NODE_PUBLISHED) $add_actions[] = 'published';
-			// sticky
-			if ($node->get('sticky')->value == NODE_STICKY) $add_actions[] = 'sticked';
-			break;
-	}
-
-	if (!empty($add_actions)) {
-		$add_res = $ss_client->publishEvent(array(
-				'action' => implode(', ', $add_actions),
+		$res = $ss_client->publishEvent(array(
+				'action' => $action,
 				'type' => 'content',
 				'subtype' => $node->get('type')->value,
 				'name' => $node->get('title')->value,
 				'url' => $url_nid
 			) + $event);
+
+		switch ($action) {
+			case 'updated':
+				if (!empty($node->original)) {
+					// promoted
+					if ($node->original->get('promote')->value == NODE_NOT_PROMOTED && $node->get('promote')->value == NODE_PROMOTED) $add_actions[] = 'promoted';
+					// unpromoted
+					if ($node->original->get('promote')->value == NODE_PROMOTED && $node->get('promote')->value == NODE_NOT_PROMOTED) $add_actions[] = 'unpromoted';
+
+					// published
+					if ($node->original->get('status')->value == NODE_NOT_PUBLISHED && $node->get('status')->value == NODE_PUBLISHED) $add_actions[] = 'published';
+					// unpublished
+					if ($node->original->get('status')->value == NODE_PUBLISHED && $node->get('status')->value == NODE_NOT_PUBLISHED) $add_actions[] = 'unpublished';
+
+					// sticky
+					if ($node->original->get('sticky')->value == NODE_NOT_STICKY && $node->get('sticky')->value == NODE_STICKY) $add_actions[] = 'sticked';
+					// not sticky
+					if ($node->original->get('sticky')->value == NODE_STICKY && $node->get('sticky')->value == NODE_NOT_STICKY) $add_actions[] = 'unsticked';
+				}
+				break;
+
+			case 'created':
+				// checking only "on" actions, cause opposite state did not exist
+				// promoted
+				if ($node->get('promote')->value == NODE_PROMOTED) $add_actions[] = 'promoted';
+				// published
+				if ($node->get('status')->value == NODE_PUBLISHED) $add_actions[] = 'published';
+				// sticky
+				if ($node->get('sticky')->value == NODE_STICKY) $add_actions[] = 'sticked';
+				break;
+		}
+
+		if (!empty($add_actions)) {
+			$add_res = $ss_client->publishEvent(array(
+					'action' => implode(', ', $add_actions),
+					'type' => 'content',
+					'subtype' => $node->get('type')->value,
+					'name' => $node->get('title')->value,
+					'url' => $url_nid
+				) + $event);
+		}
 	}
 }
 
 function stacksight_comment_insert(EntityInterface $comment) {
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true) {
+		global $ss_client;
+		if (empty($ss_client) || empty($comment)) return;
+		if ($comment->get('status')->value == CommentInterface::NOT_PUBLISHED) return;
 
-	global $ss_client;
-	if (empty($ss_client) || empty($comment)) return;
-	if ($comment->get('status')->value == CommentInterface::NOT_PUBLISHED) return;
+		$event = array();
+		$url_options = array('absolute' => true);
+		$user_id = \Drupal::currentUser()->id();
+		if (\Drupal::currentUser()->isAuthenticated()) {
+			$user = User::load($user_id);
+			$event['user'] = array(
+				'name' => $user->get('name')->value,
+			);
+			$url = Url::fromUri("entity:user/$user_id", $url_options);
+			if ($url->isRouted()) {
+				$event['url'] = $url->toString();
+			}
+		}
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	$user_id = \Drupal::currentUser()->id();
-	if (\Drupal::currentUser()->isAuthenticated()) {
-		$user = User::load($user_id);
-		$event['user'] = array(
-			'name' => $user->get('name')->value,
-		);
-		$url = Url::fromUri("entity:user/$user_id", $url_options);
-		if($url->isRouted()){
+		$node_id = $comment->get('entity_id')->target_id;
+		$cid = $comment->get('cid')->value;
+		if ($comment->get('subject')->value) {
+			$url_options['fragment'] = "comment-$cid";
+			$event['name'] = $comment->get('subject')->value;
+			$url = Url::fromUri("entity:node/$node_id", $url_options);
 			$event['url'] = $url->toString();
 		}
+
+		$event['data']['body'] = $comment->get('comment_body')->value;
+
+		$res = $ss_client->publishEvent(array(
+				'action' => 'added',
+				'type' => 'comment',
+				'id' => $cid
+			) + $event);
 	}
-
-	$node_id = $comment->get('entity_id')->target_id;
-	$cid = $comment->get('cid')->value;
-	if ($comment->get('subject')->value){
-		$url_options['fragment'] = "comment-$cid";
-		$event['name'] = $comment->get('subject')->value;
-		$url = Url::fromUri("entity:node/$node_id", $url_options);
-		$event['url'] = $url->toString();
-	}
-
-	$event['data']['body'] = $comment->get('comment_body')->value;
-
-	$res = $ss_client->publishEvent(array(
-			'action' => 'added',
-			'type' => 'comment',
-			'id' => $cid
-		) + $event);
 }
 
 function stacksight_comment_update($comment) {
-	global $ss_client;
-	if (empty($ss_client) || empty($comment)) return;
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true) {
+		global $ss_client;
+		if (empty($ss_client) || empty($comment)) return;
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	$user_id = \Drupal::currentUser()->id();
-	if (\Drupal::currentUser()->isAuthenticated()) {
-		$user = User::load($user_id);
-		$event['user'] = array(
-			'name' => $user->get('name')->value,
+		$event = array();
+		$url_options = array('absolute' => true);
+		$user_id = \Drupal::currentUser()->id();
+		if (\Drupal::currentUser()->isAuthenticated()) {
+			$user = User::load($user_id);
+			$event['user'] = array(
+				'name' => $user->get('name')->value,
+			);
+			$url = Url::fromUri("entity:user/$user_id", $url_options);
+			if ($url->isRouted()) {
+				$event['url'] = $url->toString();
+			}
+		}
+		// if comment changed
+		$com_changes = _stacksight_array_diff_assoc_recursive(
+			array('subject' => $comment->get('subject')->value, $comment->get('comment_body')->value),
+			array('subject' => $comment->original->get('subject')->value, $comment->original->get('comment_body')->value)
 		);
-		$url = Url::fromUri("entity:user/$user_id", $url_options);
-		if($url->isRouted()){
+		if ($com_changes) {
+
+		}
+
+		if ($comment->original->get('status')->value == CommentInterface::NOT_PUBLISHED && $comment->get('status')->value == CommentInterface::PUBLISHED) {
+			// published
+			$event['action'] = 'published';
+		} elseif ($comment->original->get('status')->value == CommentInterface::PUBLISHED && $comment->get('status')->value == CommentInterface::NOT_PUBLISHED) {
+			// unpublished
+			$event['action'] = 'unpublished';
+		}
+
+		$node_id = $comment->get('entity_id')->target_id;
+		$cid = $comment->get('cid')->value;
+		if ($comment->get('subject')->value) {
+			$url_options['fragment'] = "comment-$cid";
+			$event['name'] = $comment->get('subject')->value;
+			$url = Url::fromUri("entity:node/$node_id", $url_options);
 			$event['url'] = $url->toString();
 		}
+		$res = $ss_client->publishEvent(array(
+				'action' => 'edited',
+				'type' => 'comment',
+				'id' => $cid
+			) + $event);
 	}
-	// if comment changed
-	$com_changes = _stacksight_array_diff_assoc_recursive(
-		array('subject' => $comment->get('subject')->value,  $comment->get('comment_body')->value),
-		array('subject' => $comment->original->get('subject')->value,  $comment->original->get('comment_body')->value)
-	);
-	if ($com_changes) {
-
-	}
-
-	if ($comment->original->get('status')->value == CommentInterface::NOT_PUBLISHED && $comment->get('status')->value == CommentInterface::PUBLISHED) {
-		// published
-		$event['action'] = 'published';
-	} elseif ($comment->original->get('status')->value == CommentInterface::PUBLISHED && $comment->get('status')->value == CommentInterface::NOT_PUBLISHED) {
-		// unpublished
-		$event['action'] = 'unpublished';
-	}
-
-	$node_id = $comment->get('entity_id')->target_id;
-	$cid = $comment->get('cid')->value;
-	if ($comment->get('subject')->value){
-		$url_options['fragment'] = "comment-$cid";
-		$event['name'] = $comment->get('subject')->value;
-		$url = Url::fromUri("entity:node/$node_id", $url_options);
-		$event['url'] = $url->toString();
-	}
-	$res = $ss_client->publishEvent(array(
-			'action' => 'edited',
-			'type' => 'comment',
-			'id' => $cid
-		) + $event);
 }
 
 function stacksight_comment_delete($comment) {
-	global $ss_client;
-	if (empty($ss_client) || empty($comment)) return;
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true) {
+		global $ss_client;
+		if (empty($ss_client) || empty($comment)) return;
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	$user_id = \Drupal::currentUser()->id();
-	if (\Drupal::currentUser()->isAuthenticated()) {
-		$user = User::load($user_id);
-		$event['user'] = array(
-			'name' => $user->get('name')->value,
-		);
-		$url = Url::fromUri("entity:user/$user_id", $url_options);
-		if($url->isRouted()){
-			$event['url'] = $url->toString();
+		$event = array();
+		$url_options = array('absolute' => true);
+		$user_id = \Drupal::currentUser()->id();
+		if (\Drupal::currentUser()->isAuthenticated()) {
+			$user = User::load($user_id);
+			$event['user'] = array(
+				'name' => $user->get('name')->value,
+			);
+			$url = Url::fromUri("entity:user/$user_id", $url_options);
+			if ($url->isRouted()) {
+				$event['url'] = $url->toString();
+			}
 		}
+
+		if (!empty($comment->get('subject')->value)) $event['name'] = $comment->get('subject')->value;
+
+		$res = $ss_client->publishEvent(array(
+				'action' => 'deleted',
+				'type' => 'comment'
+			) + $event);
 	}
-
-	if (!empty($comment->get('subject')->value)) $event['name'] = $comment->get('subject')->value;
-
-	$res = $ss_client->publishEvent(array(
-			'action' => 'deleted',
-			'type' => 'comment'
-		) + $event);
 }
 
 function _stacksight_array_diff_assoc_recursive($array1, $array2) {
@@ -429,46 +442,48 @@ function stacksight_file_delete($file) {
 
 
 function _stacksight_file_events($file, $action) {
-	global $ss_client;
-	$event = array();
+	if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS === true) {
+		global $ss_client;
+		$event = array();
 
-	if (empty($ss_client) || empty($file) || empty($action)) return;
-	if ($action == 'uploaded') {
-		// required that condition cause this hook is called 3 times with different parameters
-		if (empty($file->original) || empty($file->get('status')->value)) return;
-		$event['url'] = file_create_url($file->get('uri')->value);
-	}
-
-	$url_options = array('absolute' => true);
-	$user_id = \Drupal::currentUser()->id();
-	if (\Drupal::currentUser()->isAuthenticated()) {
-		$user = User::load($user_id);
-		$event['user'] = array(
-			'name' => $user->get('name')->value,
-		);
-		$url = Url::fromUri("entity:user/$user_id", $url_options);
-		if($url->isRouted()){
-			$event['url'] = $url->toString();
+		if (empty($ss_client) || empty($file) || empty($action)) return;
+		if ($action == 'uploaded') {
+			// required that condition cause this hook is called 3 times with different parameters
+			if (empty($file->original) || empty($file->get('status')->value)) return;
+			$event['url'] = file_create_url($file->get('uri')->value);
 		}
-	}
 
-	$file_ex = explode('/', $file->get('filemime')->value);
-	if (!empty($file_ex[0])) {
-		$event['subtype'] = $file_ex[0];
-	}
+		$url_options = array('absolute' => true);
+		$user_id = \Drupal::currentUser()->id();
+		if (\Drupal::currentUser()->isAuthenticated()) {
+			$user = User::load($user_id);
+			$event['user'] = array(
+				'name' => $user->get('name')->value,
+			);
+			$url = Url::fromUri("entity:user/$user_id", $url_options);
+			if ($url->isRouted()) {
+				$event['url'] = $url->toString();
+			}
+		}
 
-	$res = $ss_client->publishEvent(array(
-			'action' => $action,
-			'type' => 'file',
-			'name' => $file->get('filename')->value,
-			'id' => $file->get('fid')->value,
-			'data' => array(
-				'file_name' => $file->get('filename')->value,
-				'type' => $file->get('filemime')->value,
-				'size' => $file->get('filesize')->value,
-				'url' => isset($event['url']) ? $event['url'] : '',
-			)
-		) + $event);
+		$file_ex = explode('/', $file->get('filemime')->value);
+		if (!empty($file_ex[0])) {
+			$event['subtype'] = $file_ex[0];
+		}
+
+		$res = $ss_client->publishEvent(array(
+				'action' => $action,
+				'type' => 'file',
+				'name' => $file->get('filename')->value,
+				'id' => $file->get('fid')->value,
+				'data' => array(
+					'file_name' => $file->get('filename')->value,
+					'type' => $file->get('filemime')->value,
+					'size' => $file->get('filesize')->value,
+					'url' => isset($event['url']) ? $event['url'] : '',
+				)
+			) + $event);
+	}
 }
 
 function stacksight_page_attachments_alter(array &$page) {
