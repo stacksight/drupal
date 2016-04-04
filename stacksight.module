@@ -10,7 +10,7 @@ require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 function stacksight_admin() {
     drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
     $form = array();
-    $form['stacksight_app_id'] = array(
+    $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
         '#title' => t('Stack ID'),
         '#default_value' => variable_get('stacksight_app_id', ''),
@@ -18,9 +18,15 @@ function stacksight_admin() {
         '#maxlength' => 24,
         '#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
         '#required' => false,
-    );
+    ) :
+        array(
+            '#type' => 'fieldset',
+            '#title' => t('Stack ID'),
+            '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-green">'.t("Is calculated").'</span>'
+        )
+    ;
 
-    $form['stacksight_token'] = array(
+    $form['stacksight_token'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
         '#title' => t('Access Token'),
         '#default_value' => variable_get('stacksight_token', ''),
@@ -28,9 +34,15 @@ function stacksight_admin() {
         '#maxlength' => 68,
         '#description' => t("An access token as created at <a href='https://apps.stacksight.io'>stacksight.io</a>"),
         '#required' => TRUE,
-    );
+    ):
+        array(
+            '#type' => 'fieldset',
+            '#title' => t('Access Token'),
+            '#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
+        )
+    ;
 
-    $form['stacksight_group'] = array(
+    $form['stacksight_group'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
         '#title' => t('App group'),
         '#default_value' => variable_get('stacksight_group', ''),
@@ -38,21 +50,13 @@ function stacksight_admin() {
         '#maxlength' => 68,
         '#description' => t("Stack application group"),
         '#required' => false,
-    );
-
-    $app_id = variable_get('stacksight_app_id');
-    $token = variable_get('stacksight_token');
-    $group = variable_get('stacksight_token');
-//    if ($app_id && $token) {
-        $form['stacksight_code'] = array(
-            '#markup' => theme('code_config', array('data' => array(
-                '_id' => $app_id,
-                'token' => $token,
-                'module_path' => drupal_get_path('module', 'stacksight'),
-                'diagnostic' => stacksight_get_diagnostic($app_id, $token)
-            )))
-        );
-//    }
+    ):
+        array(
+            '#type' => 'fieldset',
+            '#title' => t('App group'),
+            '#description' => defined('STACKSIGHT_GROUP') ? STACKSIGHT_GROUP : '<span class="pre-code-red">'.t("Not set").'</span>'
+        )
+    ;
 
     $last_cron_run = variable_get('cron_last');
 
