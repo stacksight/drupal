@@ -33,7 +33,7 @@ class StacksightFeaturesForm extends ConfigFormBase {
         $form['stacksight_include_logs'] = array(
             '#type' => 'checkbox',
             '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs'),
-            '#default_value' => $config->get('features.include_logs'),
+            '#default_value' => ($conf = $config->get('features.include_logs')) ? $conf : STACKSIGHT_INCLUDE_LOGS,
             '#description' => t($description),
             '#required' => false
         );
@@ -42,7 +42,7 @@ class StacksightFeaturesForm extends ConfigFormBase {
         $form['stacksight_include_health'] = array(
             '#type' => 'checkbox',
             '#title' => (defined('stacksight_health_title')) ? stacksight_health_title : t('Include Health'),
-            '#default_value' => ($conf = $config->get('features.include_health')) ? $conf : true,
+            '#default_value' => ($conf = $config->get('features.include_health')) ? $conf : STACKSIGHT_INCLUDE_HEALTH,
             '#description' => t($description),
             '#required' => false
         );
@@ -51,7 +51,7 @@ class StacksightFeaturesForm extends ConfigFormBase {
         $form['stacksight_include_inventory'] = array(
             '#type' => 'checkbox',
             '#title' => (defined('stacksight_inventory_title')) ? stacksight_inventory_title : t('Include Inventory'),
-            '#default_value' => ($conf = $config->get('features.include_inventory')) ? $conf : true,
+            '#default_value' => ($conf = $config->get('features.include_inventory')) ? $conf : STACKSIGHT_INCLUDE_INVENTORY,
             '#description' => t($description),
             '#required' => false
         );
@@ -60,7 +60,7 @@ class StacksightFeaturesForm extends ConfigFormBase {
         $form['stacksight_include_events'] = array(
             '#type' => 'checkbox',
             '#title' => (defined('stacksight_events_title')) ? stacksight_events_title : t('Include Events'),
-            '#default_value' => ($conf = $config->get('features.include_events')) ? $conf : true,
+            '#default_value' => ($conf = $config->get('features.include_events')) ? $conf : STACKSIGHT_INCLUDE_EVENTS,
             '#description' => t($description),
             '#required' => false
         );
@@ -69,7 +69,7 @@ class StacksightFeaturesForm extends ConfigFormBase {
         $form['stacksight_include_updates'] = array(
             '#type' => 'checkbox',
             '#title' => (defined('stacksight_updates_title')) ? stacksight_updates_title : t('Include Updates'),
-            '#default_value' => ($conf = $config->get('features.include_updates')) ? $conf : true,
+            '#default_value' => ($conf = $config->get('features.include_updates')) ? $conf : STACKSIGHT_INCLUDE_UPDATES,
             '#description' => t($description),
             '#required' => false
         );
