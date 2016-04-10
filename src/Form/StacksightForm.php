@@ -27,6 +27,18 @@ class StacksightForm extends ConfigFormBase {
     {
         $config = $this->config('stacksight.settings');
 
+        $form['app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
+            '#type' => 'textfield',
+            '#title' => t('STACK ID')->render(),
+            '#default_value' => $config->get('main.app_id'),
+            '#required' => false
+        ):
+            array(
+                '#type' => 'fieldset',
+                '#title' => t('STACK ID')->render(),
+                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-green">'.t("Is calculated").'</span>'
+            )
+        ;
 
         $form['token'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
             '#type' => 'textfield',
@@ -38,19 +50,6 @@ class StacksightForm extends ConfigFormBase {
                 '#type' => 'fieldset',
                 '#title' => t('Access Token')->render(),
                 '#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">' . t("Not set")->render() . '</span>'
-            )
-        ;
-
-        $form['app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
-            '#type' => 'textfield',
-            '#title' => t('App ID')->render(),
-            '#default_value' => $config->get('main.app_id'),
-            '#required' => false
-        ):
-            array(
-                '#type' => 'fieldset',
-                '#title' => t('App ID')->render(),
-                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-green">'.t("Is calculated").'</span>'
             )
         ;
 
