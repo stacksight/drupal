@@ -9,6 +9,8 @@ require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
     drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
+    showStackMessages();
+
     $form = array();
     $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
@@ -71,8 +73,9 @@ function stacksight_admin() {
 
 function stacksight_admin_features() {
     drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
-    $form = array();
+    showStackMessages();
 
+    $form = array();
     $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
     $form['stacksight_include_logs'] = array(
         '#type' => 'checkbox',
@@ -131,6 +134,15 @@ function stacksight_admin_features() {
     //update LK
     stacksight_updates_publish();
     return system_settings_form($form);
+}
+
+function showStackMessages(){
+    if(isset($_SESSION['STACKSIGHT_MESSAGE']) && !empty($_SESSION['STACKSIGHT_MESSAGE']) && is_array($_SESSION['STACKSIGHT_MESSAGE'])){
+        foreach($_SESSION['STACKSIGHT_MESSAGE'] as $message){
+            $_SESSION['messages']['error'][] = $message;
+        }
+    }
+
 }
 
 function stacksight_menu() {
