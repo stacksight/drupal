@@ -26,7 +26,9 @@ class StacksightForm extends ConfigFormBase {
     public function buildForm(array $form, FormStateInterface $form_state)
     {
         $config = $this->config('stacksight.settings');
-
+        $this->showStackMessages();
+        $form = array();
+        
         $form['app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
             '#type' => 'textfield',
             '#title' => t('STACK ID')->render(),
@@ -85,6 +87,15 @@ class StacksightForm extends ConfigFormBase {
         */
         $form['actions']['#type'] = 'actions';
         return parent::buildForm($form, $form_state);
+    }
+
+    public function showStackMessages(){
+        if(isset($_SESSION['STACKSIGHT_MESSAGE']) && !empty($_SESSION['STACKSIGHT_MESSAGE']) && is_array($_SESSION['STACKSIGHT_MESSAGE'])){
+            foreach($_SESSION['STACKSIGHT_MESSAGE'] as $message){
+                print_r('X');
+                $_SESSION['messages']['error'][] = $message;
+            }
+        }
     }
 
     private function _diagnostic(){
