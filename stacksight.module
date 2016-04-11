@@ -8,7 +8,7 @@ require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
 function stacksight_admin() {
 	drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
-
+	showStackMessages();
 	$form = array();
 
 	$form['stacksight_app_id'] = array(
@@ -39,6 +39,14 @@ function stacksight_admin() {
 	//update LK
 	stacksight_updates_publish();
 	return system_settings_form($form);
+}
+
+function showStackMessages(){
+    if(isset($_SESSION['STACKSIGHT_MESSAGE']) && !empty($_SESSION['STACKSIGHT_MESSAGE']) && is_array($_SESSION['STACKSIGHT_MESSAGE'])){
+        foreach($_SESSION['STACKSIGHT_MESSAGE'] as $message){
+            $_SESSION['messages']['error'][] = $message;
+        }
+    }
 }
 
 function stacksight_menu() {
