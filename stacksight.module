@@ -142,7 +142,6 @@ function showStackMessages(){
             $_SESSION['messages']['error'][] = $message;
         }
     }
-
 }
 
 function stacksight_menu() {
@@ -177,6 +176,16 @@ function stacksight_menu() {
             'access arguments' => array('administer stacksight settings'),
             'type' => MENU_LOCAL_TASK,
             'weight' => 10,
+        );
+    $items['admin/config/development/stacksight/debug'] =
+        array(
+            'title' => t('Debug'),
+            'description' => t('Debug StackSight module'),
+            'page callback' => 'drupal_get_form',
+            'page arguments' => array('stacksight_admin_debug'),
+            'access arguments' => array('administer stacksight settings'),
+            'type' => MENU_LOCAL_TASK,
+            'weight' => 20
         );
 
     return $items;
@@ -241,6 +250,13 @@ function stacksight_map_severity_level($drupal_sev_level) {
 
 function stacksight_theme() {
 	return array(
+        'stacksight_admin_debug' =>
+            array(
+                'variables' => array(
+                    'data' => NULL
+                ),
+                'template' => 'stacksight_debug',
+            ),
 		'code_config' => array(
 			'variables' => array(
 				'data' => NULL
@@ -1118,4 +1134,11 @@ function _stacksight_seo_add_element($object){
 	$result['link'] = url(drupal_get_path_alias('/node/'.$object->nid), array('absolute'=>TRUE));
 	$result['points'] = (isset($object->seo_status)) ? $object->seo_status * 10 : 0;
 	return $result;
+}
+
+function stacksight_admin_debug(){
+    $form['submit_button'] = array(
+        '#markup' => 'DFGHJKL',
+    );
+    return $form;
 }
