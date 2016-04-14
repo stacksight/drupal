@@ -1138,7 +1138,7 @@ function _stacksight_seo_add_element($object){
 
 function stacksight_admin_debug(){
     $form['submit_button'] = array(
-        '#markup' => 'DFGHJKL',
+        '#markup' => '',
     );
     return $form;
 }
