@@ -492,12 +492,11 @@ function stacksight_page_attachments_alter(array &$page) {
 	}
 	$page['#attached']['library'][] = 'stacksight/global-styling';
 }
-/*
+
 function stacksight_theme() {
-	$theme['code_config'] = [
-		'variables' => ['attributes' => NULL],
-		'template' => 'code_config'
+	$theme['debug_page'] = [
+		'variables' => ['name' => NULL],
+		'template' => 'debug',
 	];
 	return $theme;
 }
-*/
