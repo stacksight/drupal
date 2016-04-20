@@ -137,6 +137,7 @@ function stacksight_admin_features() {
 }
 
 function showStackMessages(){
+    SSUtilities::checkPermissions();
     if(isset($_SESSION['STACKSIGHT_MESSAGE']) && !empty($_SESSION['STACKSIGHT_MESSAGE']) && is_array($_SESSION['STACKSIGHT_MESSAGE'])){
         foreach($_SESSION['STACKSIGHT_MESSAGE'] as $message){
             $_SESSION['messages']['error'][] = $message;
@@ -177,16 +178,18 @@ function stacksight_menu() {
             'type' => MENU_LOCAL_TASK,
             'weight' => 10,
         );
-    $items['admin/config/development/stacksight/debug'] =
-        array(
-            'title' => t('Debug'),
-            'description' => t('Debug StackSight module'),
-            'page callback' => 'drupal_get_form',
-            'page arguments' => array('stacksight_admin_debug'),
-            'access arguments' => array('administer stacksight settings'),
-            'type' => MENU_LOCAL_TASK,
-            'weight' => 20
-        );
+    if(defined('STACKSIGHT_DEBUG') && STACKSIGHT_DEBUG === true){
+        $items['admin/config/development/stacksight/debug'] =
+            array(
+                'title' => t('Debug'),
+                'description' => t('Debug StackSight module'),
+                'page callback' => 'drupal_get_form',
+                'page arguments' => array('stacksight_admin_debug'),
+                'access arguments' => array('administer stacksight settings'),
+                'type' => MENU_LOCAL_TASK,
+                'weight' => 20
+            );
+    }
 
     return $items;
 }
