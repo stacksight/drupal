@@ -12,21 +12,24 @@ function stacksight_admin() {
     showStackMessages();
 
     $form = array();
-    $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
-        '#type' => 'textfield',
-        '#title' => t('Stack ID'),
-        '#default_value' => variable_get('stacksight_app_id', ''),
-        '#size' => 68,
-        '#maxlength' => 24,
-        '#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
-        '#required' => false,
-    ) :
-        array(
-            '#type' => 'fieldset',
+    if(defined('STACKSIGHT_APP_ID')){
+        $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
+            '#type' => 'textfield',
             '#title' => t('Stack ID'),
-            '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
-        )
-    ;
+            '#default_value' => variable_get('stacksight_app_id', ''),
+            '#size' => 68,
+            '#maxlength' => 24,
+            '#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
+            '#required' => false,
+        ) :
+            array(
+                '#type' => 'fieldset',
+                '#title' => t('Stack ID'),
+                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
+            )
+        ;
+    }
+
 
     $form['stacksight_token'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
