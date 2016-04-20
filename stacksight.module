@@ -625,7 +625,7 @@ function stacksight_updates_publish() {
     if(defined('STACKSIGHT_INCLUDE_UPDATES') && STACKSIGHT_INCLUDE_UPDATES == true){
         global $ss_client;
         if (empty($ss_client)) return;
-
+        
         $updates = stacksight_get_availible_updates();
         $upd = array();
         foreach ($updates as $key => $uitem) {
@@ -695,11 +695,13 @@ function stacksight_cron(){
 		}
 	}
 
+    stacksight_updates_publish();
+
   	$interval = variable_get('stacksight_interval', 60 * 60);
   	// We usually don't want to act every time cron runs (which could be every
   	// minute) so keep a time for the next run in a variable.
   	if (time() >= variable_get('stacksight_next_execution', 0)) {
-    	stacksight_updates_publish();
+    	//stacksight_updates_publish();
     	if (!empty($GLOBALS['stacksight_show_status_message'])) {
       	drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
     	}
