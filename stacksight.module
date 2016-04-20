@@ -24,7 +24,7 @@ function stacksight_admin() {
         array(
             '#type' => 'fieldset',
             '#title' => t('Stack ID'),
-            '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-green">'.t("Is calculated").'</span>'
+            '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
         )
     ;
 
