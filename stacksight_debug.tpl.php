@@ -128,10 +128,10 @@ if (defined('STACKSIGHT_DEBUG') && STACKSIGHT_DEBUG === true) {
                 </div>
             </div>
         <?php endforeach;
-        foreach ($_SESSION['stacksight_debug'] as $key => $feature):?>
+        foreach($_SESSION['stacksight_debug'] as $key => $feature_dump_data):?>
             <div class="feature-block">
                 <h3 class="header">
-                    <?php switch ($key) {
+                    <?php switch($key){
                         case 'updates':
                             echo 'Updates';
                             break;
@@ -147,20 +147,23 @@ if (defined('STACKSIGHT_DEBUG') && STACKSIGHT_DEBUG === true) {
                         case 'logs':
                             echo 'Logs';
                             break;
-                    } ?>
+                    }?>
                 </h3>
                 <hr>
                 <div class="dump-of-data">
-                    <?php if (isset($feature_detail['data']['data']) && !empty($feature_detail['data']['data'])): ?>
-                        <pre>
-                            <?php print_r($feature_detail['data']['data']); ?>
-                        </pre>
-                    <?php else: ?>
+                    <?php if(isset($feature_dump_data['data']) && !empty($feature_dump_data['data'])):?>
+                        <?php foreach($feature_dump_data['data'] as $dum_data):?>
+                            <pre>
+                                    <?php print_r($dum_data['data']);?>
+                                </pre>
+                        <?php endforeach;?>
+                    <?php else:?>
                         <strong>Data not found... :(</strong>
-                    <?php endif; ?>
+                    <?php endif;?>
 
                 </div>
             </div>
-        <?php endforeach;
+            <?php
+        endforeach;
     }
 }
