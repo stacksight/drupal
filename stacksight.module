@@ -629,19 +629,21 @@ function stacksight_updates_publish() {
         $updates = stacksight_get_availible_updates();
         $upd = array();
         foreach ($updates as $key => $uitem) {
-            $upd[] = array(
-                'title' => $uitem['title'],
-                'release_ts' => $uitem['datestamp'],
-                'current_version' => $uitem['existing_version'],
-                'latest_version' => $uitem['latest_version'],
-                'type' => $uitem['project_type'],
-                'status' => $uitem['status'],
-                // 'description' => $uitem['status'],
-                'link' => $uitem['link'],
-                'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
-                'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
-                // 'update_link' => '',
-            );
+            if(isset($uitem['title']) && isset($uitem['existing_version']) && isset($uitem['latest_version'])){
+                $upd[] = array(
+                    'title' => $uitem['title'],
+                    'release_ts' => $uitem['datestamp'],
+                    'current_version' => $uitem['existing_version'],
+                    'latest_version' => $uitem['latest_version'],
+                    'type' => $uitem['project_type'],
+                    'status' => $uitem['status'],
+                    // 'description' => $uitem['status'],
+                    'link' => (isset($uitem['link'])) ? $uitem['link'] : false,
+                    'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : false,
+                    'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : false,
+                    // 'update_link' => '',
+                );
+            }
         }
 
         $ss_client->sendUpdates(array('data' => $upd));
