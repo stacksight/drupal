@@ -1222,10 +1222,28 @@ function handshake(){
 }
 
 function getTotalState(){
+    global $base_url;
     $plugin_info = false;
     $info = system_get_info('module');
     if(isset($info['stacksight'])){
         $plugin_info = $info['stacksight'];
+    }
+
+    $plugin_info['space_used'] = trim(str_replace('	.','', shell_exec('du -hs .')));
+    $plugin_info['wpml_lang'] = false;
+
+    $plugin_info['public'] = true;
+    $plugin_info['url'] = $base_url;
+
+    $meta = db_query("SELECT * FROM {users} ORDER BY login DESC LIMIT 1")->fetchAssoc();
+    if (isset($meta) && !empty($meta)){
+        $plugin_info['last_login'] = array(
+            'user_id' => $meta['uid'],
+            'user_login' => $meta['name'],
+            'user_mail' => $meta['mail'],
+            'user_name' => $meta['name'],
+            'time' => $meta['login']
+        );
     }
 
     return array(
