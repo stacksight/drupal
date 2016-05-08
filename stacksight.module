@@ -42,16 +42,16 @@ function stacksight_updates_publish() {
 		$upd = array();
 		foreach ($updates as $key => $uitem) {
 			$upd[] = array(
-				'title' => $uitem['title'],
+				'title' => isset($uitem['info']['name']) ? $uitem['info']['name'] : '',
 				'release_ts' => $uitem['datestamp'],
 				'current_version' => $uitem['existing_version'],
-				'latest_version' => $uitem['latest_version'],
+				'latest_version' => isset($uitem['info']['version']) ? $uitem['info']['version'] : '',
 				'type' => $uitem['project_type'],
 				'status' => $uitem['status'],
 				// 'description' => $uitem['status'],
-				'link' => $uitem['link'],
-				'release_link' => isset($uitem['releases'][$uitem['latest_version']]['release_link']) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
-				'download_link' => isset($uitem['releases'][$uitem['latest_version']]['download_link']) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
+				'link' => isset($uitem['link']) ? $uitem['link'] : '',
+				'release_link' => (isset($uitem['latest_version']) && isset($uitem['releases'][$uitem['latest_version']]['release_link'])) ? $uitem['releases'][$uitem['latest_version']]['release_link'] : '',
+				'download_link' => (isset($uitem['latest_version']) && isset($uitem['releases'][$uitem['latest_version']]['download_link'])) ? $uitem['releases'][$uitem['latest_version']]['download_link'] : '',
 				// 'update_link' => '',
 			);
 		}
