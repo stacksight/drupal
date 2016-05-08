@@ -38,14 +38,14 @@ class StacksightFeaturesForm extends ConfigFormBase {
             '#required' => false
         );
 
-        $description = (defined('stacksight_health_text')) ? stacksight_health_text : '';
-        $form['stacksight_include_health'] = array(
-            '#type' => 'checkbox',
-            '#title' => (defined('stacksight_health_title')) ? stacksight_health_title : t('Include Health'),
-            '#default_value' => STACKSIGHT_INCLUDE_HEALTH,
-            '#description' => t($description),
-            '#required' => false
-        );
+//        $description = (defined('stacksight_health_text')) ? stacksight_health_text : '';
+//        $form['stacksight_include_health'] = array(
+//            '#type' => 'checkbox',
+//            '#title' => (defined('stacksight_health_title')) ? stacksight_health_title : t('Include Health'),
+//            '#default_value' => STACKSIGHT_INCLUDE_HEALTH,
+//            '#description' => t($description),
+//            '#required' => false
+//        );
 
         $description = (defined('stacksight_inventory_text')) ? stacksight_inventory_text : '';
         $form['stacksight_include_inventory'] = array(
@@ -104,7 +104,7 @@ class StacksightFeaturesForm extends ConfigFormBase {
     public function submitForm(array &$form, FormStateInterface $form_state) {
         $this->config('stacksight.features')
             ->set('features.include_logs', $form_state->getValue('stacksight_include_logs'))
-            ->set('features.include_health', $form_state->getValue('stacksight_include_health'))
+//            ->set('features.include_health', $form_state->getValue('stacksight_include_health'))
             ->set('features.include_inventory', $form_state->getValue('stacksight_include_inventory'))
             ->set('features.include_events', $form_state->getValue('stacksight_include_events'))
             ->set('features.include_updates', $form_state->getValue('stacksight_include_updates'))

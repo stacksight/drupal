@@ -12,6 +12,10 @@ require_once('stacksight-php-sdk/SSClientBase.php');
 require_once('stacksight-php-sdk/SSEventsMessageMapping.php');
 require_once('stacksight-php-sdk/platforms/SSDrupalClient.php');
 
+if (defined('STACKSIGHT_DEBUG') && STACKSIGHT_DEBUG === true){
+	define('STACKSIGHT_DEBUG_MODE', true);
+}
+
 function stacksight_cron(){
 	global $ss_client;
 	\Drupal::logger('stacksight')->notice('stacksight invoked by cron');
@@ -20,8 +24,8 @@ function stacksight_cron(){
 	$interval = \Drupal::state()->get('stacksight_interval', 60 * 60);
 	// We usually don't want to act every time cron runs (which could be every
 	// minute) so keep a time for the next run in a variable.
+	stacksight_updates_publish();
 	if (time() >= \Drupal::state()->get('stacksight_next_execution', 0)) {
-		stacksight_updates_publish();
 		if (!empty($GLOBALS['stacksight_show_status_message'])) {
 			drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
 		}
@@ -495,7 +499,9 @@ function stacksight_page_attachments_alter(array &$page) {
 
 function stacksight_theme() {
 	$theme['debug_page'] = [
-		'variables' => ['name' => NULL],
+		'variables' => [
+			'session' => NULL,
+		],
 		'template' => 'debug',
 	];
 	return $theme;

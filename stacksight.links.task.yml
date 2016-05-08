@@ -13,5 +13,5 @@ stacksight.features:
 stacksight.debug:
   route_name: stacksight.debug
   title: Debug
-  base_route: stacksight.debug
+  base_route: stacksight.settings
   weight: 30
