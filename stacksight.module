@@ -24,6 +24,15 @@ function stacksight_cron(){
 	$interval = \Drupal::state()->get('stacksight_interval', 60 * 60);
 	// We usually don't want to act every time cron runs (which could be every
 	// minute) so keep a time for the next run in a variable.
+	if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+		$inventory = stacksight_inventory_call();
+		if(!empty($inventory)){
+			$data = array(
+				'data' => $inventory
+			);
+			$ss_client->sendInventory($data);
+		}
+	}
 	stacksight_updates_publish();
 	if (time() >= \Drupal::state()->get('stacksight_next_execution', 0)) {
 		if (!empty($GLOBALS['stacksight_show_status_message'])) {
@@ -416,6 +425,66 @@ function stacksight_comment_delete($comment) {
 				'type' => 'comment'
 			) + $event);
 	}
+}
+
+function stacksight_inventory_call(){
+	$inventory_modules = array();
+	$inventory_themes = array();
+	$modules = system_rebuild_module_data();
+
+	if($modules && is_array($modules)){
+		foreach($modules as $key => $module){
+			$info = $module->info;
+			$dep_modules = array();
+			if(isset($info['dependencies']) && !empty($info['dependencies'])){
+				foreach($info['dependencies'] as $dep_module){
+					if(!empty($dep_module) && isset($modules[$dep_module])){
+						$info_dep_mod = $modules[$dep_module]->info;
+						if(!empty($info_dep_mod) && is_array($info_dep_mod)){
+							$dep_modules[] = array(
+								'type' => SSDrupalClient::TYPE_MODULE,
+								'name' => (isset($dep_module) && !empty($dep_module)) ? $dep_module : $info_dep_mod['name'],
+								'version' => (isset($info_dep_mod['version']) && !empty($info_dep_mod['version'])) ? $info_dep_mod['version'] : false,
+								'label' => (isset($info_dep_mod['name']) && !empty($info_dep_mod['name'])) ? $info_dep_mod['name'] : false,
+								'description' => (isset($info_dep_mod['description']) && !empty($info_dep_mod['description'])) ? $info_dep_mod['description'] : false,
+								'active' => (bool) $modules[$dep_module]->status,
+								'requires' => (array) $info_dep_mod['dependencies']
+							);
+						}
+					}
+				}
+			}
+			$inventory_modules[] = array(
+				'type' => SSDrupalClient::TYPE_MODULE,
+				'name' => (isset($key) && !empty($key)) ? $key : $info['name'],
+				'version' => (isset($info['version']) && !empty($info['version'])) ? $info['version'] : false,
+				'label' => (isset($info['name']) && !empty($info['name'])) ? $info['name'] : false,
+				'description' => (isset($info['description']) && !empty($info['description'])) ? $info['description'] : false,
+				'active' => (bool) $module->status,
+				'requires' => (!empty($dep_modules)) ? $dep_modules : array()
+			);
+
+		}
+	}
+
+
+	// Get all available themes.
+	$themes = \Drupal::service('theme_handler')->rebuildThemeData();
+	if($themes && is_array($themes)){
+		foreach($themes as $key => $theme){
+			$inventory_themes[] = array(
+				'type' => SSDrupalClient::TYPE_THEME,
+				'name' => $theme->info['name'],
+				'version' => $theme->info['version'],
+				'label' => $theme->info['name'],
+				'description' => $theme->info['description'],
+				'active' => (bool) $theme->status,
+				'requires' => array()
+			);
+		}
+	}
+
+	return array_merge($inventory_modules, $inventory_themes);
 }
 
 function _stacksight_array_diff_assoc_recursive($array1, $array2) {
