@@ -24,6 +24,7 @@ function stacksight_cron(){
 	$interval = \Drupal::state()->get('stacksight_interval', 60 * 60);
 	// We usually don't want to act every time cron runs (which could be every
 	// minute) so keep a time for the next run in a variable.
+	handshake();
 	if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
 		$inventory = stacksight_inventory_call();
 		if(!empty($inventory)){
@@ -33,7 +34,10 @@ function stacksight_cron(){
 			$ss_client->sendInventory($data);
 		}
 	}
-	stacksight_updates_publish();
+	if(defined('STACKSIGHT_INCLUDE_UPDATES') && STACKSIGHT_INCLUDE_UPDATES == true){
+		stacksight_updates_publish();
+	}
+
 	if (time() >= \Drupal::state()->get('stacksight_next_execution', 0)) {
 		if (!empty($GLOBALS['stacksight_show_status_message'])) {
 			drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
@@ -485,6 +489,90 @@ function stacksight_inventory_call(){
 	}
 
 	return array_merge($inventory_modules, $inventory_themes);
+}
+
+function handshake(){
+	global $ss_client;
+
+	$total_state = getTotalState();
+	$total_hash_state = md5(serialize($total_state));
+	$old_hash_exist = false;
+	$old_hash_state = false;
+	$date_of_old_hash_state = false;
+	$state_option = false;
+
+	$state_option = \Drupal::state()->get('stacksight_state', false);
+	if($state_option){
+		$tempory = unserialize($state_option);
+		$old_hash_exist = true;
+		$old_hash_state = $tempory['hash_of_state'];
+		$date_of_old_hash_state = $tempory['date_of_set'];
+	}
+
+	// If we have changed state
+	if($total_hash_state != $old_hash_state){
+		$time = time();
+		// Send new state
+		$handshake_event = array(
+			'action' => ($old_hash_exist === true) ? 'updated' : 'registred',
+			'type' => 'stacksight',
+			'name' => 'configuration',
+			'data' => $total_state
+		);
+
+		// Write new state to DB
+		$new_state_to_db = array(
+			'hash_of_state' => $total_hash_state,
+			'date_of_set' => $time
+		);
+
+		\Drupal::state()->set('stacksight_state', serialize($new_state_to_db));
+
+		$ss_client->publishEvent($handshake_event);
+	}
+}
+
+function getTotalState(){
+	global $base_url;
+	$plugin_info = false;
+	$info = system_get_info('module');
+	if(isset($info['stacksight'])){
+		$plugin_info = $info['stacksight'];
+	}
+
+	$plugin_info['space_used'] = trim(str_replace('	.','', shell_exec('du -hs .')));
+	$plugin_info['wpml_lang'] = false;
+
+	$plugin_info['public'] = true;
+	$plugin_info['url'] = $base_url;
+
+	$meta = db_query("SELECT * FROM {users_field_data} ORDER BY login DESC LIMIT 1")->fetchAssoc();
+	if (isset($meta) && !empty($meta)){
+		$plugin_info['last_login'] = array(
+			'user_id' => $meta['uid'],
+			'user_login' => $meta['name'],
+			'user_mail' => $meta['mail'],
+			'user_name' => $meta['name'],
+			'time' => $meta['login']
+		);
+	}
+
+	return array(
+		'app' => $plugin_info,
+		'settings' => array(
+			'app_id' => (defined('STACKSIGHT_APP_ID')) ? STACKSIGHT_APP_ID : false,
+			'app_token' => (defined('STACKSIGHT_TOKEN')) ? STACKSIGHT_TOKEN : false,
+			'app_group' => (defined('STACKSIGHT_GROUP')) ? STACKSIGHT_GROUP : false,
+			'debug_mode' => (defined('STACKSIGHT_DEBUG')) ? STACKSIGHT_DEBUG : false
+		),
+		'features' => array(
+			'logs' => (defined('STACKSIGHT_INCLUDE_LOGS')) ? STACKSIGHT_INCLUDE_LOGS : $this->defaultDefines['STACKSIGHT_INCLUDE_LOGS'],
+			'health' => (defined('STACKSIGHT_INCLUDE_HEALTH')) ? STACKSIGHT_INCLUDE_HEALTH : $this->defaultDefines['STACKSIGHT_INCLUDE_HEALTH'],
+			'inventory' => (defined('STACKSIGHT_INCLUDE_INVENTORY')) ? STACKSIGHT_INCLUDE_INVENTORY : $this->defaultDefines['STACKSIGHT_INCLUDE_INVENTORY'],
+			'events' => (defined('STACKSIGHT_INCLUDE_EVENTS')) ? STACKSIGHT_INCLUDE_EVENTS : $this->defaultDefines['STACKSIGHT_INCLUDE_EVENTS'],
+			'updates' => (defined('STACKSIGHT_INCLUDE_UPDATES')) ? STACKSIGHT_INCLUDE_UPDATES : $this->defaultDefines['STACKSIGHT_INCLUDE_UPDATES']
+		)
+	);
 }
 
 function _stacksight_array_diff_assoc_recursive($array1, $array2) {
