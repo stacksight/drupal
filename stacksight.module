@@ -218,7 +218,7 @@ function stacksight_watchdog($log) {
 		$message = empty($log['variables']) ? t($log['message']) : t($log['message'], $log['variables']);
 		$message = strip_tags($message);
 
-		if ($log['type'] == 'php') {
+		if ($log['type'] == 'php' && (defined('STACKSIGHT_INCLUDE_LOGS') && STACKSIGHT_INCLUDE_LOGS == true)) {
 			$severity = stacksight_map_severity_level($log['severity']);
 			$res = $ss_client->sendLog($message, $severity);
 		} else {
