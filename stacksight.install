@@ -1,5 +1,33 @@
 <?php
+function stacksight_requirements($phase) {
+	$requirements = array();
+	$t = get_t();
+	$requirements['stacksight'] = array(
+		'title' => $t('Stacksight for Drupal'),
+	);
 
+	if(!defined('STACKSIGHT_PHP_SDK_INCLUDE') || (defined('STACKSIGHT_PHP_SDK_INCLUDE') && STACKSIGHT_PHP_SDK_INCLUDE !== true)){
+		$requirements['stacksight'] += array(
+			'value' => $t('Disabled'),
+			'description' => 'Please insert to config file the stack scrip which is located on your stack tab.',
+			'severity' => REQUIREMENT_ERROR,
+		);
+	} else{
+		if(defined('STACKSIGHT_TOKEN')){
+			$requirements['stacksight'] += array(
+				'value' => $t('Enabled'),
+				'severity' => REQUIREMENT_OK,
+			);
+		}else{
+			$requirements['stacksight'] += array(
+				'value' => $t('Disabled'),
+				'description' => 'Please insert a unique Token Key, located on your account page.',
+				'severity' => REQUIREMENT_ERROR,
+			);
+		}
+	}
+	return $requirements;
+}
 function stacksight_uninstall() {
 	variable_del('stacksight_token');
 }
