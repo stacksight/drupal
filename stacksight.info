@@ -2,4 +2,5 @@ name = StackSight integration for Drupal
 description = Provides StackSight integration for Drupal
 package = "Stacksight LTD"
 dependencies[] = update
+configure = admin/config/development/stacksight
 core = "7.x"
