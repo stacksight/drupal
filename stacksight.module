@@ -837,12 +837,10 @@ function stacksight_inventory_call(){
 	$themes = list_themes();
 	if($themes && is_array($themes)){
 		foreach($themes as $key => $theme){
-            if(empty($theme->info['version']))
-                continue;
 			$inventory_themes[] = array(
 				'type' => SSDrupalClient::TYPE_THEME,
 				'name' => $theme->name,
-				'version' => $theme->info['version'],
+				'version' => !empty($theme->info['version']) ? $theme->info['version'] : '',
 				'label' => $theme->info['name'],
 				'description' => $theme->info['description'],
 				'active' => ($theme->status) ? true : false,
