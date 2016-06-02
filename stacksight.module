@@ -398,58 +398,61 @@ function stacksight_node_delete($node) {
 }
 
 // user
-function _stacksight_user_events($account, $action) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($account) || empty($action)) return;
+function _stacksight_user_events($account, $action){
+    if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        if (empty($ss_client) || empty($account) || empty($action)) return;
 
-	$event = $changed = array(); $event_name = '';
-	if (!empty($account->uid)) {
-		$url_options = array('absolute' => true);
-		$event['url'] = url('user/'.$account->uid, $url_options);
-	}
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
+        $event = $changed = array();
+        $event_name = '';
+        if (!empty($account->uid)) {
+            $url_options = array('absolute' => true);
+            $event['url'] = url('user/' . $account->uid, $url_options);
+        }
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/' . $user->uid, $url_options)
+            );
+        }
 
-	$event_name = $account->name;
+        $event_name = $account->name;
 
-	if ($action == 'updated' && !empty($account->original)) {
-		$event_name = 'account';
-		$origin = $account->original;
-		// name
-		if ($origin->name != $account->name) $changed[] = t('name (@str)', array('@str' => $account->name));
-		// timezone
-		if ($origin->timezone != $account->timezone) $changed[] = t('time zone (@str)', array('@str' => $account->timezone));
-		// password
-		if ($origin->pass != $account->pass) $changed[] = 'password';
-		// email
-		if ($origin->mail != $account->mail) $changed[] = t('email (@str)', array('@str' => $account->mail));
-		// active/blocked
-		if ($origin->status != $account->status) $changed[] = $account->status ? t('status (acvive)') : t('status (blocked)');
-		// avatar uploaded
-		if (!empty($account->picture_upload)) $changed[] = t('avatar (new)');
-		// avatar deleted
-		if (!empty($account->picture_delete)) $changed[] = t('avatar (removed)');
-	}
+        if ($action == 'updated' && !empty($account->original)) {
+            $event_name = 'account';
+            $origin = $account->original;
+            // name
+            if ($origin->name != $account->name) $changed[] = t('name (@str)', array('@str' => $account->name));
+            // timezone
+            if ($origin->timezone != $account->timezone) $changed[] = t('time zone (@str)', array('@str' => $account->timezone));
+            // password
+            if ($origin->pass != $account->pass) $changed[] = 'password';
+            // email
+            if ($origin->mail != $account->mail) $changed[] = t('email (@str)', array('@str' => $account->mail));
+            // active/blocked
+            if ($origin->status != $account->status) $changed[] = $account->status ? t('status (acvive)') : t('status (blocked)');
+            // avatar uploaded
+            if (!empty($account->picture_upload)) $changed[] = t('avatar (new)');
+            // avatar deleted
+            if (!empty($account->picture_delete)) $changed[] = t('avatar (removed)');
+        }
 
-	// general event
-	$res = $ss_client->publishEvent(array(
-		'action' => $action,
-		'type' => 'user',
-		'name' => $event_name
-	) + $event);
+        // general event
+        $res = $ss_client->publishEvent(array(
+                'action' => $action,
+                'type' => 'user',
+                'name' => $event_name
+            ) + $event);
 
-	// specific what changed (see case 'updated' for details)
-	if (!empty($changed)) {
-		$add_res = $ss_client->publishEvent(array(
-			'action' => 'changed',
-			'type' => 'user',
-			'name' => implode(', ', $changed)
-		) + $event);
-	}
+        // specific what changed (see case 'updated' for details)
+        if (!empty($changed)) {
+            $add_res = $ss_client->publishEvent(array(
+                    'action' => 'changed',
+                    'type' => 'user',
+                    'name' => implode(', ', $changed)
+                ) + $event);
+        }
+    }
 }
 
 function stacksight_user_insert(&$edit, $account, $category) {
@@ -1210,9 +1213,7 @@ function handshake(){
             'hash_of_state' => $total_hash_state,
             'date_of_set' => $time
         );
-
         variable_set('stacksight_state', serialize($new_state_to_db));
-
         $ss_client->publishEvent($handshake_event);
     }
 }
