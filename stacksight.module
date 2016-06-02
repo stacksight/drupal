@@ -69,8 +69,6 @@ function stacksight_admin() {
         drupal_set_message(t('You should run cron. Last runing cron did at %time', array('%time' => date_iso8601($last_cron_run))));
     }
 
-    //update LK
-    stacksight_updates_publish();
     return system_settings_form($form);
 }
 
@@ -134,8 +132,6 @@ function stacksight_admin_features() {
         drupal_set_message(t('You should run cron. Last runing cron did at %time', array('%time' => date_iso8601($last_cron_run))));
     }
 
-    //update LK
-    stacksight_updates_publish();
     return system_settings_form($form);
 }
 
@@ -709,12 +705,12 @@ function stacksight_cron(){
   	// We usually don't want to act every time cron runs (which could be every
   	// minute) so keep a time for the next run in a variable.
   	if (time() >= variable_get('stacksight_next_execution', 0)) {
-    	//stacksight_updates_publish();
     	if (!empty($GLOBALS['stacksight_show_status_message'])) {
       	drupal_set_message(t('stacksight executed at %time', array('%time' => date_iso8601(time(0)))));
     	}
     	variable_set('stacksight_next_execution', time() + $interval);
   	}
+    variable_get('cron_last', time());
 }
 
 function _stacksight_array_diff_assoc_recursive($array1, $array2) {
