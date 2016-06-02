@@ -468,18 +468,19 @@ function stacksight_user_delete($account) {
 }
 
 function _stacksight_user_log_events($account, $action) {
-	global $ss_client;
-	if (empty($ss_client) || empty($account) || empty($action)) return;
+    if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client;
+        if (empty($ss_client) || empty($account) || empty($action)) return;
+        $event = array();
+        $url_options = array('absolute' => true);
+        $event['user'] = array('name' => $account->name, 'url' => url('user/' . $account->uid, $url_options));
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	$event['user'] = array('name' => $account->name, 'url' => url('user/'.$account->uid, $url_options));
-
-	$res = $ss_client->publishEvent(array(
-		'action' => $action,
-		'type' => 'user',
-		'name' => '',
-	) + $event);
+        $res = $ss_client->publishEvent(array(
+                'action' => $action,
+                'type' => 'user',
+                'name' => '',
+            ) + $event);
+    }
 }
 
 function stacksight_user_login(&$edit, $account) {
@@ -492,41 +493,43 @@ function stacksight_user_logout($account) {
 
 // files
 function _stacksight_file_events($file, $action) {
-	global $ss_client, $user;
-	$event = array();
+    if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        $event = array();
 
-	if (empty($ss_client) || empty($file) || empty($action)) return;
-	if ($action == 'uploaded') {
-		// required that condition cause this hook is called 3 times with different parameters
-		if (empty($file->original) || empty($file->status)) return;
+        if (empty($ss_client) || empty($file) || empty($action)) return;
+        if ($action == 'uploaded') {
+            // required that condition cause this hook is called 3 times with different parameters
+            if (empty($file->original) || empty($file->status)) return;
 
-		$event['url'] = file_create_url($file->uri);
-	}
+            $event['url'] = file_create_url($file->uri);
+        }
 
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	$file_ex = explode('/', $file->filemime);
-	if (!empty($file_ex[0])) {
-		$event['subtype'] = $file_ex[0];
-	}
+        $url_options = array('absolute' => true);
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/'.$user->uid, $url_options)
+            );
+        }
+        $file_ex = explode('/', $file->filemime);
+        if (!empty($file_ex[0])) {
+            $event['subtype'] = $file_ex[0];
+        }
 
-	$res = $ss_client->publishEvent(array(
-		'action' => $action,
-		'type' => 'file',
-		'name' => $file->filename,
-		'id' => $file->fid,
-		'data' => array(
-			'file_name' => $file->filename,
-			'type' => $file->filemime,
-			'size' => $file->filesize,
-			'url' => isset($event['url']) ? $event['url'] : '',
-		)
-	) + $event);
+        $res = $ss_client->publishEvent(array(
+            'action' => $action,
+            'type' => 'file',
+            'name' => $file->filename,
+            'id' => $file->fid,
+            'data' => array(
+                'file_name' => $file->filename,
+                'type' => $file->filemime,
+                'size' => $file->filesize,
+                'url' => isset($event['url']) ? $event['url'] : '',
+            )
+        ) + $event);
+    }
 }
 
 function stacksight_file_presave($file) {
@@ -539,88 +542,93 @@ function stacksight_file_delete($file) {
 
 
 // comments
-function stacksight_comment_delete($comment) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($comment)) return;
+function stacksight_comment_delete($comment){
+    if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        if (empty($ss_client) || empty($comment)) return;
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	if (!empty($comment->subject)) $event['name'] = $comment->subject;
+        $event = array();
+        $url_options = array('absolute' => true);
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/' . $user->uid, $url_options)
+            );
+        }
+        if (!empty($comment->subject)) $event['name'] = $comment->subject;
 
-	$lang = $comment->language;
-	if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
-		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
-		if (empty($event['name'])) $event['name'] = mb_substr($event['data']['body'], 0, 16).'...';
-	}
+        $lang = $comment->language;
+        if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+            $event['data']['body'] = $comment->comment_body[$lang][0]['value'];
+            if (empty($event['name'])) $event['name'] = mb_substr($event['data']['body'], 0, 16) . '...';
+        }
 
-	$res = $ss_client->publishEvent(array(
-		'action' => 'deleted',
-		'type' => 'comment'
-	) + $event);
+        $res = $ss_client->publishEvent(array(
+                'action' => 'deleted',
+                'type' => 'comment'
+            ) + $event);
+    }
 }
 
 function stacksight_comment_insert($comment) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($comment)) return;
-	if ($comment->status != COMMENT_NOT_PUBLISHED) return;
+    if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        if (empty($ss_client) || empty($comment)) return;
+        if ($comment->status != COMMENT_NOT_PUBLISHED) return;
 
+        $event = array();
+        $url_options = array('absolute' => true);
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/'.$user->uid, $url_options)
+            );
+        }
+        if ($comment->subject) $event['name'] = $comment->subject;
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	if ($comment->subject) $event['name'] = $comment->subject;
+        $lang = $comment->language;
+        if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
+            $event['data']['body'] = $comment->comment_body[$lang][0]['value'];
+        }
 
-	$lang = $comment->language;
-	if (!empty($comment->comment_body[$lang]) && count($comment->comment_body[$lang])) {
-		$event['data']['body'] = $comment->comment_body[$lang][0]['value'];
-	}
-
-	$res = $ss_client->publishEvent(array(
-		'action' => 'added',
-		'type' => 'comment',
-		'id' => $comment->cid
-	) + $event);
+        $res = $ss_client->publishEvent(array(
+            'action' => 'added',
+            'type' => 'comment',
+            'id' => $comment->cid
+        ) + $event);
+    }
 }
 
 function stacksight_comment_update($comment) {
-	global $ss_client, $user;
-	if (empty($ss_client) || empty($comment)) return;
+    if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        if (empty($ss_client) || empty($comment)) return;
 
-	$event = array();
-	$url_options = array('absolute' => true);
-	if (user_is_logged_in()) {
-		$event['user'] = array(
-			'name' => $user->name,
-			'url' => url('user/'.$user->uid, $url_options)
-		);
-	}
-	// if comment changed
-	$com_changes = _stacksight_array_diff_assoc_recursive(
-		array('subject' => $comment->subject) + $comment->comment_body, 
-		array('subject' => $comment->original->subject) + $comment->original->comment_body
-	);
-	if ($com_changes) {
+        $event = array();
+        $url_options = array('absolute' => true);
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/' . $user->uid, $url_options)
+            );
+        }
+        // if comment changed
+        $com_changes = _stacksight_array_diff_assoc_recursive(
+            array('subject' => $comment->subject) + $comment->comment_body,
+            array('subject' => $comment->original->subject) + $comment->original->comment_body
+        );
+        if ($com_changes) {
 
-	}
+        }
 
-	if ($comment->original->status == COMMENT_NOT_PUBLISHED && $comment->status == COMMENT_PUBLISHED) {
-		// published
-		$event['action'] = 'published';
-	} elseif ($comment->original->status == COMMENT_PUBLISHED && $comment->status == COMMENT_NOT_PUBLISHED) {
-		// unpublished
-		$event['action'] = 'unpublished';
-	}
+        if ($comment->original->status == COMMENT_NOT_PUBLISHED && $comment->status == COMMENT_PUBLISHED) {
+            // published
+            $event['action'] = 'published';
+        } elseif ($comment->original->status == COMMENT_PUBLISHED && $comment->status == COMMENT_NOT_PUBLISHED) {
+            // unpublished
+            $event['action'] = 'unpublished';
+        }
+    }
 }
 
 function stacksight_updates_publish() {
