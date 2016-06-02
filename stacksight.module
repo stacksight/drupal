@@ -545,7 +545,6 @@ function stacksight_file_delete($file) {
 function stacksight_comment_delete($comment){
     if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
         global $ss_client, $user;
-        if (empty($ss_client) || empty($comment)) return;
 
         $event = array();
         $url_options = array('absolute' => true);
