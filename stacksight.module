@@ -136,7 +136,6 @@ function stacksight_admin_features() {
 }
 
 function showStackMessages(){
-    SSUtilities::checkPermissions();
     if(isset($_SESSION['STACKSIGHT_MESSAGE']) && !empty($_SESSION['STACKSIGHT_MESSAGE']) && is_array($_SESSION['STACKSIGHT_MESSAGE'])){
         foreach($_SESSION['STACKSIGHT_MESSAGE'] as $message){
             $_SESSION['messages']['error'][] = $message;
@@ -329,10 +328,8 @@ function _stacksight_node_events($node, $action) {
             ) + $event);
 
         if($ready_show_debug === true){
-            if(SSUtilities::checkPermissions()){
-                if(isset($_SESSION['stacksight_debug']['events']) && !empty($_SESSION['stacksight_debug']['events'])){
-                    SSUtilities::error_log(print_r($_SESSION['stacksight_debug']['events'], true), 'debug_events', true);
-                }
+            if(isset($_SESSION['stacksight_debug']['events']) && !empty($_SESSION['stacksight_debug']['events'])){
+                SSUtilities::error_log(print_r($_SESSION['stacksight_debug']['events'], true), 'debug_events', true);
             }
         }
 
@@ -376,10 +373,8 @@ function _stacksight_node_events($node, $action) {
                     'url' => url('node/' . $node->nid, $url_options)
                 ) + $event);
 
-                if(SSUtilities::checkPermissions()){
-                    if(isset($_SESSION['stacksight_debug']['events']) && !empty($_SESSION['stacksight_debug']['events'])){
-                        SSUtilities::error_log(print_r($_SESSION['stacksight_debug']['events'], true), 'debug_events', true);
-                    }
+                if(isset($_SESSION['stacksight_debug']['events']) && !empty($_SESSION['stacksight_debug']['events'])){
+                    SSUtilities::error_log(print_r($_SESSION['stacksight_debug']['events'], true), 'debug_events', true);
                 }
         }
     }
