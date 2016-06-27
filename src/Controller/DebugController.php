@@ -2,7 +2,7 @@
 namespace Drupal\stacksight\Controller;
 use Drupal\Core\Controller\ControllerBase;
 
-require_once(dirname(__FILE__) . '../../stacksight-php-sdk/SSHttpRequest.php');
+require_once(dirname(__FILE__) . '/../../stacksight-php-sdk/SSHttpRequest.php');
 
 class DebugController extends ControllerBase
 {
