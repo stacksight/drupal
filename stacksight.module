@@ -715,6 +715,7 @@ function stacksight_cron(){
     	}
     	variable_set('stacksight_next_execution', time() + $interval);
   	}
+    
     variable_get('cron_last', time());
 }
 
@@ -1151,7 +1152,10 @@ function _stacksight_seo_call_graphic($data, $post_size){
 		if(!isset($result[$key]))
 			$result[$key] = array();
 		$result[$key]['count'] = sizeof($item);
-		$result[$key]['percent'] = ($result[$key]['count'] / $post_size) * 100;
+        if($post_size > 0)
+		    $result[$key]['percent'] = ($result[$key]['count'] / $post_size) * 100;
+        else
+            $result[$key]['percent'] = 0;
 	}
 	return $result;
 }
