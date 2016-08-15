@@ -1058,21 +1058,21 @@ function stacksight_seo_call(){
 			case '3':
 				$post = _stacksight_seo_add_element($record);
 				$results_post['bad'][] = $post;
-				$total_score += $total_score + $post['points'];
+				$total_score += $post['points'];
 				break;
 
 			case '4':
 			case '5':
 				$post = _stacksight_seo_add_element($record);
 				$results_post['poor'][] = $post;
-				$total_score += $total_score + $post['points'];
+				$total_score += $post['points'];
 				break;
 
 			case '6':
 			case '7':
 				$post = _stacksight_seo_add_element($record);
 				$results_post['ok'][] = $post;
-				$total_score += $total_score + $post['points'];
+				$total_score += $post['points'];
 				break;
 
 			case '8':
@@ -1080,7 +1080,7 @@ function stacksight_seo_call(){
 			case '10':
 				$post = _stacksight_seo_add_element($record);
 				$results_post['good'][] = $post;
-				$total_score += $total_score + $post['points'];
+				$total_score += $post['points'];
 				break;
 
 			default:
@@ -1089,8 +1089,9 @@ function stacksight_seo_call(){
                     $results_post['bad'][] = $post;
                 } else{
                     $results_post['no_focus'][] = $post;
+                    $total_score += $post['points'];
                 }
-                $total_score += $total_score + $post['points'];
+
                 break;
 		}
 
