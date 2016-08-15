@@ -1178,7 +1178,7 @@ function _stacksight_seo_add_element($object){
 	$result['id'] = $object->nid;
 	$result['title'] = (isset($object->title) && !empty($object->title)) ? $object->title : 'No title';
 	$result['link'] = url(drupal_get_path_alias('/node/'.$object->nid), array('absolute'=>TRUE));
-	$result['points'] = (isset($object->seo_status)) ? $object->seo_status * 10 : 0;
+	$result['points'] = (isset($object->seo_status) && $object->seo_status > 0) ? $object->seo_status * 10 : 0;
 	return $result;
 }
 
