@@ -1084,10 +1084,14 @@ function stacksight_seo_call(){
 				break;
 
 			default:
-				$post = _stacksight_seo_add_element($record);
-				$results_post['no_focus'][] = $post;
-				$total_score += $total_score + $post['points'];
-				break;
+                $post = _stacksight_seo_add_element($record);
+                if($post['points'] < 0){
+                    $results_post['bad'][] = $post;
+                } else{
+                    $results_post['no_focus'][] = $post;
+                }
+                $total_score += $total_score + $post['points'];
+                break;
 		}
 
 		$count_posts++;
