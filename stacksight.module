@@ -807,13 +807,22 @@ function stacksight_backup_call($result){
 function stacksight_inventory_call(){
 	$inventory_modules = array();
 	$inventory_themes = array();
-	$modules = module_list();
+
+    $drupal_version = (int) VERSION;
+    $list_modules_function = '';
+    if ($drupal_version >= 7 && $drupal_version < 8) {
+        $list_modules_function = 'system_rebuild_module_data';
+    }
+    else if ($drupal_version >= 6 && $drupal_version < 7) {
+        $list_modules_function = 'module_rebuild_cache';
+    }
+    if (function_exists($list_modules_function)) {
+        $modules = $list_modules_function();
+    }
 
 	if($modules && is_array($modules)){
 		foreach($modules as $key => $module){
-			$path = drupal_get_path('module', $module) . '/' . $module . '.info';
-			$info = drupal_parse_info_file($path);
-
+            $info = $module->info;
 			$dep_modules = array();
 			if(isset($info['dependencies']) && !empty($info['dependencies'])){
 				foreach($info['dependencies'] as $dep_module){
@@ -841,7 +850,7 @@ function stacksight_inventory_call(){
 				'version' => (isset($info['version']) && !empty($info['version'])) ? $info['version'] : false,
 				'label' => (isset($info['name']) && !empty($info['name'])) ? $info['name'] : false,
 				'description' => (isset($info['description']) && !empty($info['description'])) ? $info['description'] : false,
-				'active' => (module_exists($module)) ? true : false,
+				'active' => (module_exists($module->name)) ? true : false,
 				'requires' => (!empty($dep_modules)) ? $dep_modules : array()
 			);
 		}
