@@ -615,6 +615,8 @@ function stacksight_comment_update($comment) {
 
         }
 
+        if ($comment->subject) $event['name'] = $comment->subject;
+
         if ($comment->original->status == COMMENT_NOT_PUBLISHED && $comment->status == COMMENT_PUBLISHED) {
             // published
             $event['action'] = 'published';
@@ -622,6 +624,15 @@ function stacksight_comment_update($comment) {
             // unpublished
             $event['action'] = 'unpublished';
         }
+
+        if(!isset($event['action'])){
+            $event['action'] = 'updated';
+        }
+
+        $res = $ss_client->publishEvent(array(
+                'type' => 'comment',
+                'id' => $comment->cid
+            ) + $event);
     }
 }
 
