@@ -224,6 +224,55 @@ function stacksight_watchdog($log) {
 	if ($res && !$res['success']) SSUtilities::error_log($res['message'], 'error');
 }
 
+
+function stacksight_modules_disabled($modules){
+    _sendModuleEvent($modules, 'disabled');
+}
+
+function stacksight_modules_enabled($modules){
+    _sendModuleEvent($modules, 'enabled');
+}
+
+function stacksight_modules_installed($modules){
+    print_r($modules);
+//    die('INSTALLED');
+}
+
+function stacksight_modules_uninstalled($modules){
+    print_r($modules);
+//    die('UNINSTALLED');
+}
+
+function _sendModuleEvent($modules, $type){
+    global $ss_client;
+
+    if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+        $inventory = stacksight_inventory_call();
+        if(!empty($inventory)){
+            $data = array(
+                'data' => $inventory
+            );
+            $ss_client->sendInventory($data, true);
+        }
+    }
+
+    if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+
+        foreach($modules as $module){
+            $path_dep_mod = drupal_get_path('module', $module) . '/' . $module . '.info';
+            $info_dep_mod = drupal_parse_info_file($path_dep_mod);
+            $module_event = array(
+                'action' => $type,
+                'type' => SSDrupalClient::TYPE_MODULE,
+                'name' => isset($info_dep_mod['name']) ? $info_dep_mod['name'] : '',
+            );
+            $ss_client->publishEvent($module_event, true);
+        }
+    }
+    $ss_client->sendMultiCURL();
+}
+
+
 function stacksight_map_severity_level($drupal_sev_level) {
 	// suppose we have an error if the severity level is malformed
 	$level = 'error';
