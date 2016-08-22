@@ -234,13 +234,11 @@ function stacksight_modules_enabled($modules){
 }
 
 function stacksight_modules_installed($modules){
-    print_r($modules);
-//    die('INSTALLED');
+    _sendModuleEvent($modules, 'installed');
 }
 
 function stacksight_modules_uninstalled($modules){
-    print_r($modules);
-//    die('UNINSTALLED');
+    _sendModuleEvent($modules, 'uninstalled');
 }
 
 function _sendModuleEvent($modules, $type){
