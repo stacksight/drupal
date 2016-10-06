@@ -12,7 +12,7 @@ function stacksight_admin() {
     showStackMessages();
 
     $form = array();
-    if(defined('STACKSIGHT_APP_ID')){
+    if(defined('STACKSIGHT_PUBLIC_KEY')){
         $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
             '#type' => 'textfield',
             '#title' => t('Stack ID'),
@@ -25,7 +25,7 @@ function stacksight_admin() {
             array(
                 '#type' => 'fieldset',
                 '#title' => t('Stack ID'),
-                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
+                '#description' => defined('STACKSIGHT_PUBLIC_KEY') ? STACKSIGHT_PUBLIC_KEY : (defined('STACKSIGHT_PRIVATE_KEY')) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
             )
         ;
     }
@@ -43,7 +43,7 @@ function stacksight_admin() {
         array(
             '#type' => 'fieldset',
             '#title' => t('Access Token'),
-            '#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
+            '#description' => defined('STACKSIGHT_PRIVATE_KEY') ? STACKSIGHT_PRIVATE_KEY : '<span class="pre-code-red">'.t("Not set").'</span>'
         )
     ;
 
@@ -318,7 +318,7 @@ function stacksight_get_diagnostic() {
     $list = array();
 
     if(defined('STACKSIGHT_BOOTSTRAPED')){
-        if (!defined('STACKSIGHT_TOKEN')) {
+        if (!defined('STACKSIGHT_PRIVATE_KEY')) {
             $list[] = t("Token is not defined<br>");
         }
     }
@@ -716,7 +716,7 @@ function stacksight_updates_publish() {
 function stacksight_cron(){
     global $ss_client;
 
-    if(!defined('STACKSIGHT_TOKEN'))
+    if(!defined('STACKSIGHT_PRIVATE_KEY'))
         return;
 
     watchdog('stacksight','stacksight invoked by cron');
@@ -1324,8 +1324,8 @@ function getTotalState(){
     return array(
         'app' => $plugin_info,
         'settings' => array(
-            'app_id' => (defined('STACKSIGHT_APP_ID')) ? STACKSIGHT_APP_ID : false,
-            'app_token' => (defined('STACKSIGHT_TOKEN')) ? STACKSIGHT_TOKEN : false,
+            'app_id' => (defined('STACKSIGHT_PUBLIC_KEY')) ? STACKSIGHT_PUBLIC_KEY : false,
+            'app_token' => (defined('STACKSIGHT_PRIVATE_KEY')) ? STACKSIGHT_PRIVATE_KEY : false,
             'app_group' => (defined('STACKSIGHT_GROUP')) ? STACKSIGHT_GROUP : false,
             'debug_mode' => (defined('STACKSIGHT_DEBUG')) ? STACKSIGHT_DEBUG : false
         ),
