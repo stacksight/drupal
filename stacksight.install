@@ -9,7 +9,7 @@ function stacksight_requirements($phase) {
 	if ( !defined('STACKSIGHT_PHP_SDK_INCLUDE') || ( defined('STACKSIGHT_PHP_SDK_INCLUDE') && STACKSIGHT_PHP_SDK_INCLUDE !== true )){
 		$requirements['stacksight'] += array(
 			'value' => $t('Disabled'),
-			'description' => $t('Stacksight requires you to insert a short code-snippet to your setting.php file. You will find this in <code><a href="@apps-stacksight-io">apps.Stacksight.io</a> >> Stack settings</code>, or when adding a new stack.', array('@apps-stacksight-io' => 'https://apps.Stacksight.io')),
+			'description' => $t('Stacksight requires you to insert a short code-snippet to your setting.php file. You will find this in <code><a href="@apps-stacksight-io">https://apps.Stacksight.io</a> >> Stack settings</code>, or when adding a new stack.', array('@apps-stacksight-io' => 'https://apps.Stacksight.io')),
 			'severity' => REQUIREMENT_ERROR,
 		);
 	} else {
