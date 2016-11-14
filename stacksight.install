@@ -6,19 +6,19 @@ function stacksight_requirements($phase) {
 		'title' => $t('Stacksight for Drupal'),
 	);
 
-	if(!defined('STACKSIGHT_PHP_SDK_INCLUDE') || (defined('STACKSIGHT_PHP_SDK_INCLUDE') && STACKSIGHT_PHP_SDK_INCLUDE !== true)){
+	if ( !defined('STACKSIGHT_PHP_SDK_INCLUDE') || ( defined('STACKSIGHT_PHP_SDK_INCLUDE') && STACKSIGHT_PHP_SDK_INCLUDE !== true )){
 		$requirements['stacksight'] += array(
 			'value' => $t('Disabled'),
-			'description' => 'Please insert to config file the stack scrip which is located on your stack tab.',
+			'description' => $t('Stacksight requires you to insert a short code-snippet to your setting.php file. You will find this in <code><a href="@apps-stacksight-io">apps.Stacksight.io</a> >> Stack settings</code>, or when adding a new stack.', array('@apps-stacksight-io' => 'https://apps.Stacksight.io')),
 			'severity' => REQUIREMENT_ERROR,
 		);
-	} else{
-		if(defined('STACKSIGHT_PRIVATE_KEY')){
+	} else {
+		if (defined('STACKSIGHT_PRIVATE_KEY')) {
 			$requirements['stacksight'] += array(
 				'value' => $t('Enabled'),
 				'severity' => REQUIREMENT_OK,
 			);
-		}else{
+		} else {
 			$requirements['stacksight'] += array(
 				'value' => $t('Disabled'),
 				'description' => 'Please insert a unique Token Key, located on your account page.',
