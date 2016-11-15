@@ -11,57 +11,46 @@ function stacksight_admin() {
     drupal_add_css(drupal_get_path('module', 'stacksight').'/css/ss-admin.css');
     showStackMessages();
 
+    $stacksight_token = check_plain(variable_get('stacksight_token', defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : ''));
+    $stacksight_app_id = check_plain(variable_get('stacksight_app_id', defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : ''));
+    $stacksight_group = check_plain(variable_get('stacksight_group', defined('STACKSIGHT_GROUP') ? STACKSIGHT_GROUP : ''));
+
+    $stacksight_settings_in_db = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? STACKSIGHT_SETTINGS_IN_DB : false ;
+
     $form = array();
-    if(defined('STACKSIGHT_APP_ID')){
-        $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
-            '#type' => 'textfield',
-            '#title' => t('Stack ID'),
-            '#default_value' => variable_get('stacksight_app_id', ''),
-            '#size' => 68,
-            '#maxlength' => 24,
-            '#description' => t("A stack id as created at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
-            '#required' => false,
-        ) :
-            array(
-                '#type' => 'fieldset',
-                '#title' => t('Stack ID'),
-                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
-            )
-        ;
-    }
 
+    $form['stacksight_app_id'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Stacksight ID'),
+        '#default_value' => $stacksight_app_id ? $stacksight_app_id : '',
+        '#attributes' => array('placeholder' => t('Paste your Stacksight ID here')),
+        '#size' => 68,
+        '#maxlength' => 24,
+        '#description' => t("The stack ID from the stack's Settings page at <a href='https://apps.stacksight.io'>stacksight.io</a>.") . ' ' . t('This ID is not required for the website to send data and is here for forward compatibility only. You may use it but you can also do without.'),
+        '#required' => false,
+    );
 
-    $form['stacksight_token'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
+    $form['stacksight_token'] = array(
         '#type' => 'textfield',
         '#title' => t('Access Token'),
-        '#default_value' => variable_get('stacksight_token', ''),
+        '#default_value' => $stacksight_token ? $stacksight_token : '',
+        '#attributes' => array('placeholder' => t('Paste your Stacksight TOKEN here')),
         '#size' => 68,
         '#maxlength' => 68,
-        '#description' => t("An access token as created at <a href='https://apps.stacksight.io'>stacksight.io</a>"),
+        '#description' => t("This is your user's TOKEN in Stacksight. <a href='https://apps.stacksight.io/#!/profile/general'>Get it here</a>."),
         '#required' => TRUE,
-    ):
-        array(
-            '#type' => 'fieldset',
-            '#title' => t('Access Token'),
-            '#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">'.t("Not set").'</span>'
-        )
-    ;
+    );
 
-    $form['stacksight_group'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
+    $form['stacksight_group'] = array(
         '#type' => 'textfield',
         '#title' => t('App group'),
-        '#default_value' => variable_get('stacksight_group', ''),
+        '#default_value' => $stacksight_group ? $stacksight_group : '',
+        '#attributes' => array('placeholder' => t('Group name')),
         '#size' => 68,
         '#maxlength' => 68,
-        '#description' => t("Stack application group"),
+        '#description' => t("Stack application group. If you leave this empty, you will find the data under the default group 'incoming' in Stacksight.io"),
         '#required' => false,
-    ):
-        array(
-            '#type' => 'fieldset',
-            '#title' => t('App group'),
-            '#description' => defined('STACKSIGHT_GROUP') ? STACKSIGHT_GROUP : '<span class="pre-code-red">'.t("Not set").'</span>'
-        )
-    ;
+    );
 
     $last_cron_run = variable_get('cron_last');
 
@@ -122,9 +111,6 @@ function stacksight_admin_features() {
         '#required' => false
     );
 
-
-    $app_id = variable_get('stacksight_app_id');
-    $token = variable_get('stacksight_token');
 
     $last_cron_run = variable_get('cron_last');
 
