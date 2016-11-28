@@ -1,6 +1,6 @@
-name = StackSight integration for Drupal
-description = Provides StackSight integration for Drupal
-package = "Stacksight LTD"
+name = Stacksight
+description = Provides integration to Stacksight - a complete health profile for Drupal
+package = "Monitoring"
 dependencies[] = update
 configure = admin/config/development/stacksight
 core = "7.x"
