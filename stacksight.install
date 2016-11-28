@@ -6,26 +6,26 @@ function stacksight_requirements($phase) {
 		'title' => $t('Stacksight for Drupal'),
 	);
 
-	if ( !defined('STACKSIGHT_PHP_SDK_INCLUDE') || ( defined('STACKSIGHT_PHP_SDK_INCLUDE') && STACKSIGHT_PHP_SDK_INCLUDE !== true )){
+	if(!defined('STACKSIGHT_PHP_SDK_INCLUDE') || (defined('STACKSIGHT_PHP_SDK_INCLUDE') && STACKSIGHT_PHP_SDK_INCLUDE !== true)){
 		$requirements['stacksight'] += array(
-			'value' => $t('Not connected'),
-			'description' => $t('Stacksight requires you to insert a short code-snippet to your setting.php file.
+            'value' => $t('Not connected'),
+            'description' => $t('Stacksight requires you to insert a short code-snippet to your setting.php file.
 				<p>You will find the embed code in <code><a href="@apps-stacksight-io">https://apps.Stacksight.io</a> >> Stack settings</code>, or when adding a new stack.</p>', array('@apps-stacksight-io' => 'https://apps.Stacksight.io')),
-			'severity' => REQUIREMENT_WARNING,
-		);
-	} else {
-		if ( defined('STACKSIGHT_TOKEN') ) {
+            'severity' => REQUIREMENT_WARNING
+        );
+	} else{
+		if(defined('STACKSIGHT_TOKEN')){
 			$requirements['stacksight'] += array(
 				'value' => $t('Enabled'),
 				'severity' => REQUIREMENT_OK,
 			);
-		} else {
+		}else{
 			$requirements['stacksight'] += array(
-				'value' => $t('Not connected'),
-				'description' => $t('Stacksight did not recognize your STACKSIGHT_TOKEN, which is used to identify your website in Stacksight.io.
-														<p>You should verify that the embed code in your <code>setting.php<code> includes the right values. You will find this code in <code><a href="@apps-stacksight-io">https://apps.Stacksight.io</a> >> Stack settings</code>, or when adding a new stack.</p>', array('@apps-stacksight-io' => 'https://apps.Stacksight.io')),
-				'severity' => REQUIREMENT_WARNING,
-			);
+                'value' => $t('Not connected'),
+                'description' => $t('Stacksight did not recognize your STACKSIGHT_TOKEN, which is used to identify your website in Stacksight.io.
+				    <p>You should verify that the embed code in your <code>setting.php<code> includes the right values. You will find this code in <code><a href="@apps-stacksight-io">https://apps.Stacksight.io</a> >> Stack settings</code>, or when adding a new stack.</p>', array('@apps-stacksight-io' => 'https://apps.Stacksight.io')),
+                'severity' => REQUIREMENT_WARNING
+            );
 		}
 	}
 	return $requirements;

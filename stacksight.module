@@ -19,18 +19,26 @@ function stacksight_admin() {
 
     $form = array();
 
-    $form['stacksight_app_id'] = array(
+//    if(defined('STACKSIGHT_APP_ID')){
+    $form['stacksight_app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
-        '#title' => t('Stacksight ID'),
+        '#title' => t('Stack ID'),
         '#default_value' => $stacksight_app_id ? $stacksight_app_id : '',
-        '#attributes' => array('placeholder' => t('Paste your Stacksight ID here')),
         '#size' => 68,
         '#maxlength' => 24,
+        '#attributes' => array('placeholder' => t('Paste your Stacksight ID here')),
         '#description' => t("The stack ID from the stack's Settings page at <a href='https://apps.stacksight.io'>stacksight.io</a>.") . ' ' . t('This ID is not required for the website to send data and is here for forward compatibility only. You may use it but you can also do without.'),
         '#required' => false,
+    ) :
+    array(
+        '#type' => 'fieldset',
+        '#title' => t('Stack ID'),
+        '#description' => $stacksight_app_id ? $stacksight_app_id : ($stacksight_token) ? '<span class="pre-code-green">'.t("Is calculated").'</span>' : '<span class="pre-code-red">'.t("Not set").'</span>'
     );
+//    }
 
-    $form['stacksight_token'] = array(
+
+    $form['stacksight_token'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
         '#title' => t('Access Token'),
         '#default_value' => $stacksight_token ? $stacksight_token : '',
@@ -38,10 +46,15 @@ function stacksight_admin() {
         '#size' => 68,
         '#maxlength' => 68,
         '#description' => t("This is your user's TOKEN in Stacksight. <a href='https://apps.stacksight.io/#!/profile/general'>Get it here</a>."),
-        '#required' => TRUE,
+        '#required' => true,
+    ):
+    array(
+        '#type' => 'fieldset',
+        '#title' => t('Access Token'),
+        '#description' => $stacksight_token ? $stacksight_token: '<span class="pre-code-red">'.t("Not set").'</span>'
     );
 
-    $form['stacksight_group'] = array(
+    $form['stacksight_group'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
         '#type' => 'textfield',
         '#title' => t('App group'),
         '#default_value' => $stacksight_group ? $stacksight_group : '',
@@ -50,6 +63,11 @@ function stacksight_admin() {
         '#maxlength' => 68,
         '#description' => t("Stack application group. If you leave this empty, you will find the data under the default group 'incoming' in Stacksight.io"),
         '#required' => false,
+    ):
+    array(
+        '#type' => 'fieldset',
+        '#title' => t('App group'),
+        '#description' => defined('STACKSIGHT_GROUP') ? STACKSIGHT_GROUP : '<span class="pre-code-red">'.t("Not set").'</span>'
     );
 
     $last_cron_run = variable_get('cron_last');
@@ -112,6 +130,9 @@ function stacksight_admin_features() {
     );
 
 
+    $app_id = variable_get('stacksight_app_id');
+    $token = variable_get('stacksight_token');
+
     $last_cron_run = variable_get('cron_last');
 
     if($last_cron_run < strtotime("-1 day")){
@@ -133,8 +154,8 @@ function stacksight_menu() {
     $items = array();
 
     $items['admin/config/development/stacksight'] = array(
-        'title' => 'Stacksight',
-        'description' => 'Stacksight integration module settings',
+        'title' => 'StackSight',
+        'description' => 'StackSight integration module settings',
         'page callback' => 'drupal_get_form',
         'page arguments' => array('stacksight_admin'),
         'access arguments' => array('administer stacksight settings'),
@@ -166,7 +187,7 @@ function stacksight_menu() {
         $items['admin/config/development/stacksight/debug'] =
             array(
                 'title' => t('Debug'),
-                'description' => t('Debug Stacksight module'),
+                'description' => t('Debug StackSight module'),
                 'page callback' => 'drupal_get_form',
                 'page arguments' => array('stacksight_admin_debug'),
                 'access arguments' => array('administer stacksight settings'),
@@ -181,7 +202,7 @@ function stacksight_menu() {
 function stacksight_permission() {
 	return array(
 		'administer stacksight settings' => array(
-			'title' => t('Administer Stacksight settings')
+			'title' => t('Administer StackSight settings')
 		),
 	);
 }
@@ -230,32 +251,30 @@ function stacksight_modules_uninstalled($modules){
 function _sendModuleEvent($modules, $type){
     global $ss_client;
 
-    if (!empty($ss_client)) {
-        if (defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true) {
-            $inventory = stacksight_inventory_call();
-            if (!empty($inventory)) {
-                $data = array(
-                    'data' => $inventory
-                );
-                $ss_client->sendInventory($data, true);
-            }
+    if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+        $inventory = stacksight_inventory_call();
+        if(!empty($inventory)){
+            $data = array(
+                'data' => $inventory
+            );
+            $ss_client->sendInventory($data, true);
         }
-
-        if (defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true) {
-
-            foreach ($modules as $module) {
-                $path_dep_mod = drupal_get_path('module', $module) . '/' . $module . '.info';
-                $info_dep_mod = drupal_parse_info_file($path_dep_mod);
-                $module_event = array(
-                    'action' => $type,
-                    'type' => SSDrupalClient::TYPE_MODULE,
-                    'name' => isset($info_dep_mod['name']) ? $info_dep_mod['name'] : '',
-                );
-                $ss_client->publishEvent($module_event, true);
-            }
-        }
-        $ss_client->sendMultiCURL();
     }
+
+    if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+
+        foreach($modules as $module){
+            $path_dep_mod = drupal_get_path('module', $module) . '/' . $module . '.info';
+            $info_dep_mod = drupal_parse_info_file($path_dep_mod);
+            $module_event = array(
+                'action' => $type,
+                'type' => SSDrupalClient::TYPE_MODULE,
+                'name' => isset($info_dep_mod['name']) ? $info_dep_mod['name'] : '',
+            );
+            $ss_client->publishEvent($module_event, true);
+        }
+    }
+    $ss_client->sendMultiCURL();
 }
 
 
