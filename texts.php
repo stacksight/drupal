@@ -1,6 +1,6 @@
 <?php
 
-define('stacksight_logs_title', 'Include Logs');
+define('stacksight_logs_title', 'Include Logs (<i>Beta</i>)');
 $logs_text = <<<HTML
     <div>Real time logging information of warnings and errors</div>
 HTML;

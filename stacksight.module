@@ -84,14 +84,6 @@ function stacksight_admin_features() {
     showStackMessages();
 
     $form = array();
-    $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
-    $form['stacksight_include_logs'] = array(
-        '#type' => 'checkbox',
-        '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs'),
-        '#default_value' => defined('STACKSIGHT_INCLUDE_LOGS') ? STACKSIGHT_INCLUDE_LOGS : false,
-        '#description' => t($description),
-        '#required' => false
-    );
 
     $description = (defined('stacksight_health_text')) ? stacksight_health_text : '';
     $form['stacksight_include_health'] = array(
@@ -129,6 +121,14 @@ function stacksight_admin_features() {
         '#required' => false
     );
 
+    $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
+    $form['stacksight_include_logs'] = array(
+        '#type' => 'checkbox',
+        '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs'),
+        '#default_value' => defined('STACKSIGHT_INCLUDE_LOGS') ? STACKSIGHT_INCLUDE_LOGS : false,
+        '#description' => t($description),
+        '#required' => false
+    );
 
     $app_id = variable_get('stacksight_app_id');
     $token = variable_get('stacksight_token');
