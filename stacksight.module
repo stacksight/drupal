@@ -562,7 +562,6 @@ function getTotalState(){
 		'settings' => array(
 			'app_id' => (defined('STACKSIGHT_APP_ID')) ? STACKSIGHT_APP_ID : false,
 			'app_token' => (defined('STACKSIGHT_TOKEN')) ? STACKSIGHT_TOKEN : false,
-			'app_group' => (defined('STACKSIGHT_GROUP')) ? STACKSIGHT_GROUP : false,
 			'debug_mode' => (defined('STACKSIGHT_DEBUG')) ? STACKSIGHT_DEBUG : false
 		),
 		'features' => array(

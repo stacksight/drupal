@@ -29,21 +29,19 @@ class StacksightForm extends ConfigFormBase {
         $this->showStackMessages();
         $form = array();
 
-        if(!defined('STACKSIGHT_TOKEN')){
-            $form['app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
-                '#type' => 'textfield',
-                '#title' => t('STACK ID')->render(),
-                '#default_value' => $config->get('main.app_id'),
-                '#required' => false
-            ):
-                array(
-                    '#type' => 'fieldset',
-                    '#title' => t('STACK ID')->render(),
-                    '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '' :  '<span class="pre-code-red">'.t("Not set")->render().'</span>'
-                )
-            ;
-        }
 
+        $form['app_id'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
+            '#type' => 'textfield',
+            '#title' => t('Stack id')->render(),
+            '#default_value' => $config->get('main.app_id'),
+            '#required' => false
+        ):
+            array(
+                '#type' => 'fieldset',
+                '#title' => t('STACK ID')->render(),
+                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : (defined('STACKSIGHT_TOKEN')) ? '' :  '<span class="pre-code-red">'.t("Not set")->render().'</span>'
+            )
+        ;
 
         $form['token'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
             '#type' => 'textfield',
@@ -55,19 +53,6 @@ class StacksightForm extends ConfigFormBase {
                 '#type' => 'fieldset',
                 '#title' => t('Access Token')->render(),
                 '#description' => defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : '<span class="pre-code-red">' . t("Not set")->render() . '</span>'
-            )
-        ;
-
-        $form['group'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
-            '#type' => 'textfield',
-            '#title' => t('Stacksight group')->render(),
-            '#default_value' => $config->get('main.group'),
-            '#required' => false,
-        ):
-            array(
-                '#type' => 'fieldset',
-                '#title' => t('Stacksight group')->render(),
-                '#description' => defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : '<span class="pre-code-red">' . t("Not set")->render() . '</span>'
             )
         ;
 
@@ -117,20 +102,10 @@ class StacksightForm extends ConfigFormBase {
      */
     public function submitForm(array &$form, FormStateInterface $form_state) {
         if(defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true){
-            if(!defined('STACKSIGHT_TOKEN')){
-                $this->config('stacksight.settings')
-                    ->set('main.token', $form_state->getValue('token'))
-                    ->set('main.app_id', $form_state->getValue('app_id'))
-                    ->set('main.group', $form_state->getValue('group'))
-                    ->save();
-            } else{
-                $this->config('stacksight.settings')
-                    ->set('main.token', $form_state->getValue('token'))
-                    ->set('main.group', $form_state->getValue('group'))
-                    ->save();
-            }
-
-
+            $this->config('stacksight.settings')
+                ->set('main.token', $form_state->getValue('token'))
+                ->set('main.app_id', $form_state->getValue('app_id'))
+                ->save();
             parent::submitForm($form, $form_state);
         }
     }
