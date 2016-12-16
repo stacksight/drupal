@@ -13,7 +13,6 @@ function stacksight_admin() {
 
     $stacksight_token = check_plain(variable_get('stacksight_token', defined('STACKSIGHT_TOKEN') ? STACKSIGHT_TOKEN : ''));
     $stacksight_app_id = check_plain(variable_get('stacksight_app_id', defined('STACKSIGHT_APP_ID') ? STACKSIGHT_APP_ID : ''));
-    $stacksight_group = check_plain(variable_get('stacksight_group', defined('STACKSIGHT_GROUP') ? STACKSIGHT_GROUP : ''));
 
     $stacksight_settings_in_db = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? STACKSIGHT_SETTINGS_IN_DB : false ;
 
@@ -52,22 +51,6 @@ function stacksight_admin() {
         '#type' => 'fieldset',
         '#title' => t('Access Token'),
         '#description' => $stacksight_token ? $stacksight_token: '<span class="pre-code-red">'.t("Not set").'</span>'
-    );
-
-    $form['stacksight_group'] = (defined('STACKSIGHT_SETTINGS_IN_DB') && STACKSIGHT_SETTINGS_IN_DB === true) ? array(
-        '#type' => 'textfield',
-        '#title' => t('App group'),
-        '#default_value' => $stacksight_group ? $stacksight_group : '',
-        '#attributes' => array('placeholder' => t('Group name')),
-        '#size' => 68,
-        '#maxlength' => 68,
-        '#description' => t("Stack application group. If you leave this empty, you will find the data under the default group 'incoming' in Stacksight.io"),
-        '#required' => false,
-    ):
-    array(
-        '#type' => 'fieldset',
-        '#title' => t('App group'),
-        '#description' => defined('STACKSIGHT_GROUP') ? STACKSIGHT_GROUP : '<span class="pre-code-red">'.t("Not set").'</span>'
     );
 
     $last_cron_run = variable_get('cron_last');
@@ -1333,7 +1316,6 @@ function getTotalState(){
         'settings' => array(
             'app_id' => (defined('STACKSIGHT_APP_ID')) ? STACKSIGHT_APP_ID : false,
             'app_token' => (defined('STACKSIGHT_TOKEN')) ? STACKSIGHT_TOKEN : false,
-            'app_group' => (defined('STACKSIGHT_GROUP')) ? STACKSIGHT_GROUP : false,
             'debug_mode' => (defined('STACKSIGHT_DEBUG')) ? STACKSIGHT_DEBUG : false
         ),
         'features' => array(
