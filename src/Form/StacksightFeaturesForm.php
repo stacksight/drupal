@@ -29,15 +29,6 @@ class StacksightFeaturesForm extends ConfigFormBase {
         $this->showStackMessages();
         $form = array();
 
-        $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
-        $form['stacksight_include_logs'] = array(
-            '#type' => 'checkbox',
-            '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs'),
-            '#default_value' => STACKSIGHT_INCLUDE_LOGS,
-            '#description' => t($description),
-            '#required' => false
-        );
-
 //        $description = (defined('stacksight_health_text')) ? stacksight_health_text : '';
 //        $form['stacksight_include_health'] = array(
 //            '#type' => 'checkbox',
@@ -70,6 +61,15 @@ class StacksightFeaturesForm extends ConfigFormBase {
             '#type' => 'checkbox',
             '#title' => (defined('stacksight_updates_title')) ? stacksight_updates_title : t('Include Updates'),
             '#default_value' => STACKSIGHT_INCLUDE_UPDATES,
+            '#description' => t($description),
+            '#required' => false
+        );
+
+        $description = (defined('stacksight_logs_text')) ? stacksight_logs_text : '';
+        $form['stacksight_include_logs'] = array(
+            '#type' => 'checkbox',
+            '#title' => (defined('stacksight_logs_title')) ? stacksight_logs_title : t('Include Logs <i>(Beta)</i>'),
+            '#default_value' => STACKSIGHT_INCLUDE_LOGS,
             '#description' => t($description),
             '#required' => false
         );
