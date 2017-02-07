@@ -787,7 +787,11 @@ function _stacksight_array_diff_assoc_recursive($array1, $array2) {
 
 function stacksight_backup_call($result){
 	global $ss_client;
-	$backup_list = backup_migrate_get_saved_backups();
+
+    // backup_migrate_get_saved_backups is available only at the 7.x-3.x branch
+    // Consider backward compatibility with the supported 7.x-2.x branch.
+    $backup_list = null;
+	if function_exists('backup_migrate_get_saved_backups') $backup_list = backup_migrate_get_saved_backups();
 
 	if (empty($ss_client) || empty($backup_list)) return;
 	$backups = array();
