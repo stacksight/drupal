@@ -32,4 +32,5 @@ function stacksight_requirements($phase) {
 }
 function stacksight_uninstall() {
 	variable_del('stacksight_token');
+	variable_del('stacksight_app_id');
 }

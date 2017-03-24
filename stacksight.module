@@ -26,7 +26,7 @@ function stacksight_admin() {
         '#size' => 68,
         '#maxlength' => 24,
         '#attributes' => array('placeholder' => t('Paste your Stacksight ID here')),
-        '#description' => t("The stack ID from the stack's Settings page at <a href='https://apps.stacksight.io'>stacksight.io</a>.") . ' ' . t('This ID is not required for the website to send data and is here for forward compatibility only. You may use it but you can also do without.'),
+        '#description' => t("The stack ID from the stack's Settings page at <a href='https://apps.stacksight.io'>stacksight.io</a>."),
         '#required' => false,
     ) :
     array(
@@ -234,30 +234,34 @@ function stacksight_modules_uninstalled($modules){
 function _sendModuleEvent($modules, $type){
     global $ss_client;
 
-    if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
-        $inventory = stacksight_inventory_call();
-        if(!empty($inventory)){
-            $data = array(
-                'data' => $inventory
-            );
-            $ss_client->sendInventory($data, true);
+    # During first time install, the following block would have returned an error.
+    # Only try to connect to Stacksight if an $ss_client exists.
+    if ($ss_client) {
+        if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+            $inventory = stacksight_inventory_call();
+            if(!empty($inventory)){
+                $data = array(
+                    'data' => $inventory
+                );
+                $ss_client->sendInventory($data, true);
+            }
         }
-    }
 
-    if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
+        if(defined('STACKSIGHT_INCLUDE_INVENTORY') && STACKSIGHT_INCLUDE_INVENTORY == true){
 
-        foreach($modules as $module){
-            $path_dep_mod = drupal_get_path('module', $module) . '/' . $module . '.info';
-            $info_dep_mod = drupal_parse_info_file($path_dep_mod);
-            $module_event = array(
-                'action' => $type,
-                'type' => SSDrupalClient::TYPE_MODULE,
-                'name' => isset($info_dep_mod['name']) ? $info_dep_mod['name'] : '',
-            );
-            $ss_client->publishEvent($module_event, true);
+            foreach($modules as $module){
+                $path_dep_mod = drupal_get_path('module', $module) . '/' . $module . '.info';
+                $info_dep_mod = drupal_parse_info_file($path_dep_mod);
+                $module_event = array(
+                    'action' => $type,
+                    'type' => SSDrupalClient::TYPE_MODULE,
+                    'name' => isset($info_dep_mod['name']) ? $info_dep_mod['name'] : '',
+                );
+                $ss_client->publishEvent($module_event, true);
+            }
         }
+        $ss_client->sendMultiCURL();
     }
-    $ss_client->sendMultiCURL();
 }
 
 
