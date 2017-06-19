@@ -332,6 +332,55 @@ function stacksight_get_availible_updates() {
   $updates = update_calculate_project_data($available);
   return $updates;
 }
+////////////
+// Forms  //
+// Auditool //
+////////////
+
+function stacksight_form_alter(&$form, &$form_state, $form_id) {
+  $form['#submit'][] = 'stacksight_form_submit_handler';
+}
+
+function stacksight_form_submit_handler($form, &$form_state){
+  $formObject = new stdClass;
+  $formObject->title = $form_state['build_info']['form_id'];
+  $formObject->url   = $form_state['#action'];
+  _stacksight_form_events( $formObject , 'submitted' );
+}
+
+function _stacksight_form_events($form, $action) {
+    watchdog('stacksight', var_export($form) .' ||| ' . var_export($action));
+    
+    if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
+        global $ss_client, $user;
+        if (empty($ss_client) || empty($action) || empty($form)) return;
+        $ready_show_debug = false;
+        if(user_access('administer') && (defined('STACKSIGHT_DEBUG') && STACKSIGHT_DEBUG === true)){
+            if(!strpos($_SERVER['REQUEST_URI'], 'stacksight/debug')){
+                define('STACKSIGHT_DEBUG_MODE',true);
+                $ready_show_debug = true;
+            }
+        }
+
+        $event = $add_actions = array();
+        $url_options = array('absolute' => true);
+        if (user_is_logged_in()) {
+            $event['user'] = array(
+                'name' => $user->name,
+                'url' => url('user/' . $user->uid, $url_options)
+            );
+        }
+
+        $res = $ss_client->publishEvent(array(
+                'action' => $action,
+                'type' => 'content',
+                'subtype' => 'form',
+                'name' => $form->title,
+                'url' => url( $form->url , $url_options)
+            ) + $event);
+    }
+}
+
 
 ////////////
 // Events //
@@ -1214,6 +1263,8 @@ function stacksight_seo_call(){
         return $data;
     } else return false;
 }
+
+
 
 function _stacksight_seo_call_graphic($data, $post_size){
     $result = array();
