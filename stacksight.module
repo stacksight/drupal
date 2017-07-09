@@ -342,9 +342,11 @@ function stacksight_form_alter(&$form, &$form_state, $form_id) {
 }
 
 function stacksight_form_submit_handler($form, &$form_state){
+  $formUrl = isset($form_state['#action']);
+
   $formObject = new stdClass;
   $formObject->title = $form_state['build_info']['form_id'];
-  $formObject->url   = $form_state['#action'];
+  $formObject->url   = $formUrl;
   _stacksight_form_events( $formObject , 'submitted' );
 }
 
