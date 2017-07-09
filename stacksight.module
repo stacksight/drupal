@@ -351,7 +351,7 @@ function stacksight_form_submit_handler($form, &$form_state){
 }
 
 function _stacksight_form_events($form, $action) {
-    watchdog('stacksight', var_export($form) .' ||| ' . var_export($action));
+    //watchdog('stacksight', var_export($form) .' ||| ' . var_export($action));
     
     if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
         global $ss_client, $user;
