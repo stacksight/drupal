@@ -376,7 +376,7 @@ function _stacksight_form_events($form, $action) {
                 'type' => 'content',
                 'subtype' => 'form',
                 'name' => $form->title,
-                'url' => url( $form->url , $url_options)
+                'url' => url( $form->url . current_path(), $url_options)
             ) + $event);
     }
 }
