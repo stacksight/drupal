@@ -631,7 +631,7 @@ function stacksight_file_delete($file) {
 // comments
 function stacksight_comment_delete($comment){
     if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
-        global $ss_client, $user;
+        global $ss_client, $user, $base_url;
         if (empty($ss_client) || empty($comment)) return;
 
         $event = array();
@@ -650,9 +650,16 @@ function stacksight_comment_delete($comment){
             if (empty($event['name'])) $event['name'] = mb_substr($event['data']['body'], 0, 16) . '...';
         }
 
+        $uri = entity_uri('comment', $comment);
+        $uri['options'] += array('attributes' => array(
+          'class' => 'permalink',
+          'rel' => 'bookmark',
+        ));
+
         $res = $ss_client->publishEvent(array(
                 'action' => 'deleted',
-                'type' => 'comment'
+                'type' => 'comment',
+                'url' => url(  $base_url .'/'. $uri['path'],$uri['options'], $url_options )
             ) + $event);
     }
 }
