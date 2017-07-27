@@ -342,14 +342,18 @@ function stacksight_form_alter(&$form, &$form_state, $form_id) {
 }
 
 function stacksight_form_submit_handler($form, &$form_state){
+  $formUrl = NULL;
+  if (isset($form_state['#action'])) {
+    $formUrl = $form_state['#action'];
+  }
   $formObject = new stdClass;
   $formObject->title = $form_state['build_info']['form_id'];
-  $formObject->url   = $form_state['#action'];
+  $formObject->url   = $formUrl;
   _stacksight_form_events( $formObject , 'submitted' );
 }
 
 function _stacksight_form_events($form, $action) {
-    watchdog('stacksight', var_export($form) .' ||| ' . var_export($action));
+    //watchdog('stacksight', var_export($form) .' ||| ' . var_export($action));
     
     if(defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
         global $ss_client, $user;
@@ -376,7 +380,7 @@ function _stacksight_form_events($form, $action) {
                 'type' => 'content',
                 'subtype' => 'form',
                 'name' => $form->title,
-                'url' => url( $form->url , $url_options)
+                'url' => url( $form->url . current_path(), $url_options)
             ) + $event);
     }
 }
@@ -629,7 +633,7 @@ function stacksight_file_delete($file) {
 // comments
 function stacksight_comment_delete($comment){
     if (defined('STACKSIGHT_INCLUDE_EVENTS') && STACKSIGHT_INCLUDE_EVENTS == true) {
-        global $ss_client, $user;
+        global $ss_client, $user, $base_url;
         if (empty($ss_client) || empty($comment)) return;
 
         $event = array();
@@ -648,9 +652,16 @@ function stacksight_comment_delete($comment){
             if (empty($event['name'])) $event['name'] = mb_substr($event['data']['body'], 0, 16) . '...';
         }
 
+        $uri = entity_uri('comment', $comment);
+        $uri['options'] += array('attributes' => array(
+          'class' => 'permalink',
+          'rel' => 'bookmark',
+        ));
+
         $res = $ss_client->publishEvent(array(
                 'action' => 'deleted',
-                'type' => 'comment'
+                'type' => 'comment',
+                'url' => url(  $base_url .'/'. $uri['path'],$uri['options'], $url_options )
             ) + $event);
     }
 }
